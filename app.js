@@ -377,12 +377,59 @@
       runMemoryTest();
       state.meta.completedAll03 = true;
       state.meta.completedAt = new Date().toISOString();
-      setText("runStatus", "Complete. Photograph Compact fingerprint + Worker result + Safe allocation result.");
+      setText("runStatus", "Complete. You can now send the result directly to GitHub.");
       renderAll();
+      updateGithubButton();
       try { document.getElementById("compact").scrollIntoView(true); } catch (_) {}
     });
   }
 
+  function buildGithubIssueUrl() {
+    var failed = [];
+    for (var i = 0; i < state.tests.length; i++) {
+      if (!state.tests[i].ok) failed.push(state.tests[i].group + " / " + state.tests[i].name + " - " + state.tests[i].detail);
+    }
+    var title = "[PS5 13.60 Result] " + (state.meta.completedAt || new Date().toISOString());
+    var body = [
+      "## PS5 13.60 automated test result",
+      "",
+      "**Firmware:** " + (state.meta.firmware || "unknown"),
+      "**UA WebKit label:** " + (state.meta.userAgentWebKitLabel || "unknown"),
+      "**Build:** " + (state.meta.build || "0.3"),
+      "",
+      "### Compact fingerprint",
+      "```text",
+      compactFingerprint(),
+      "```",
+      "",
+      "### Worker / transferable result",
+      "```json",
+      JSON.stringify(state.worker, null, 2),
+      "```",
+      "",
+      "### Safe allocation result",
+      "```json",
+      JSON.stringify(state.memory, null, 2),
+      "```",
+      "",
+      "### Failed / unavailable checks",
+      failed.length ? failed.map(function (x) { return "- " + x; }).join("\n") : "- none",
+      "",
+      "### User-Agent",
+      "```text",
+      state.meta.userAgent || "",
+      "```"
+    ].join("\n");
+    return "https://github.com/Tumelo00/deneme/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(body);
+  }
+
+  function updateGithubButton() {
+    var btn = document.getElementById("sendGithub");
+    if (!btn) return;
+    var ready = !!(state.meta && state.meta.completedAll03);
+    btn.disabled = !ready;
+    btn.textContent = ready ? "Send result to GitHub" : "Send result to GitHub (run full test first)";
+  }
   function renderTests() {
     var root = document.getElementById("features");
     root.innerHTML = "";
@@ -444,6 +491,7 @@
     setText("workerReport", JSON.stringify(state.worker, null, 2));
     setText("memoryReport", JSON.stringify(state.memory, null, 2));
     setText("report", JSON.stringify(state, null, 2));
+    updateGithubButton();
 
     try {
       localStorage.setItem("ps5-1360-last-report-v3", JSON.stringify(state));
@@ -456,6 +504,10 @@
   document.getElementById("memoryTest").addEventListener("click", runMemoryTest);
   document.getElementById("showReport").addEventListener("click", function () {
     document.getElementById("report").scrollIntoView(true);
+  });
+  document.getElementById("sendGithub").addEventListener("click", function () {
+    if (!(state.meta && state.meta.completedAll03)) return;
+    location.href = buildGithubIssueUrl();
   });
 
   collectMeta();
