@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PS5 13.60 Research Runner 0.5.6</title>
+<title>PS5 13.60 Research Runner 0.5.7</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -22,7 +22,7 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.5.6</div>
+  <div class="eyebrow">RESEARCH BUILD 0.5.7</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
@@ -33,7 +33,7 @@
 <script>
 (function(){
   "use strict";
-  var BUILD="0.5.6";
+  var BUILD="0.5.7";
   var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
 
   function bootMarker(){
@@ -173,7 +173,7 @@
       }
     }catch(_){}
 
-    phase(rid,"TELEMETRY_MIRROR_READY","build=0.5.6");
+    phase(rid,"TELEMETRY_MIRROR_READY","build=0.5.7");
 
     var q=[
       "go=1",
@@ -198,22 +198,75 @@
 
     try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
 
-    phase(rid,"BUTTON_CLICK","build=0.5.6\nmax=1\nn=512\nbridge=disabled\nnotify=0x48b0\ngps=0x334e238");
+    phase(rid,"BUTTON_CLICK","build=0.5.7\nmax=1\nn=512\nbridge=disabled\nvisible_ctx_watch=1\nnotify=0x48b0\ngps=0x334e238");
+
+    var diag = {
+      ctxSeen:false,
+      callbackSeen:false,
+      startedAt:Date.now()
+    };
+
+    function showDiag(label, detail) {
+      var line = label + (detail ? " — " + detail : "");
+      status.textContent = line;
+      try {
+        localStorage.setItem("ps5-1360-last-stage1-result", line);
+      } catch (_) {}
+    }
+
+    var ctxWatch = setInterval(function(){
+      try{
+        if(!diag.ctxSeen && window.__PS5_CTX){
+          diag.ctxSeen=true;
+          var ctx=window.__PS5_CTX;
+          showDiag(
+            "CTX DETECTED",
+            "webkitBase="+String(ctx.webkitBase||0)+
+            " libkernelBase="+String(ctx.libkernelBase||0)
+          );
+          phase(
+            rid,
+            "CTX_DETECTED",
+            "webkitBase="+String(ctx.webkitBase||0)+
+            "\nlibkernelBase="+String(ctx.libkernelBase||0)
+          );
+        }
+      }catch(_){}
+    },50);
 
     window.onUserland=function(){
+      diag.callbackSeen=true;
       try{
         var ctx=window.__PS5_CTX || {};
+        clearInterval(ctxWatch);
+        showDiag(
+          "USERLAND HANDOFF CONFIRMED",
+          "ctx="+(window.__PS5_CTX ? "yes" : "no")+
+          " webkitBase="+String(ctx.webkitBase||0)+
+          " libkernelBase="+String(ctx.libkernelBase||0)
+        );
         phase(
           rid,
           "USERLAND_HANDOFF",
-          "ctx=1\nwebkitBase="+String(ctx.webkitBase||0)+
+          "ctx="+(window.__PS5_CTX ? "1" : "0")+
+          "\nwebkitBase="+String(ctx.webkitBase||0)+
           "\nlibkernelBase="+String(ctx.libkernelBase||0)
         );
-        status.textContent="USERLAND HANDOFF reached. Bridge intentionally disabled.";
       }catch(e){
         phase(rid,"USERLAND_HANDOFF_ERROR","error="+String(e&&e.message||e).slice(0,160));
       }
     };
+
+    setTimeout(function(){
+      try{
+        if(diag.callbackSeen) return;
+        if(window.__PS5_CTX){
+          showDiag("CTX PRESENT / CALLBACK NOT SEEN","bridge disabled; stage-1 context exists");
+        } else {
+          showDiag("NO USERLAND HANDOFF","single attempt ended before __PS5_CTX publication");
+        }
+      }catch(_){}
+    },12000);
 
     status.textContent="Button received. Sending diagnostic marker…";
 
