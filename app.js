@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.2",
+      build: "0.3",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -235,7 +235,7 @@
     renderAll();
   }
 
-  function runWorkerTest() {
+  function runWorkerTest(done) {
     var report = document.getElementById("workerReport");
     report.textContent = "Running...";
     state.worker = { status: "running" };
@@ -243,6 +243,7 @@
     if (typeof Worker === "undefined" || typeof Blob === "undefined" || !window.URL || typeof URL.createObjectURL !== "function") {
       state.worker = { status: "unsupported", detail: "Worker or Blob URL unavailable" };
       renderAll();
+      if (typeof done === "function") done();
       return;
     }
 
@@ -275,6 +276,7 @@
         try { worker.terminate(); } catch (_) {}
         try { URL.revokeObjectURL(url); } catch (_) {}
         renderAll();
+        if (typeof done === "function") done();
       };
 
       worker.onerror = function (e) {
@@ -283,6 +285,7 @@
         try { worker.terminate(); } catch (_) {}
         try { URL.revokeObjectURL(url); } catch (_) {}
         renderAll();
+        if (typeof done === "function") done();
       };
 
       try {
@@ -297,11 +300,13 @@
         try { worker.terminate(); } catch (_) {}
         try { URL.revokeObjectURL(url); } catch (_) {}
         renderAll();
+        if (typeof done === "function") done();
       }, 4000);
     } catch (e) {
       state.worker = { status: "error", detail: e.name + ": " + e.message };
       try { URL.revokeObjectURL(url); } catch (_) {}
       renderAll();
+      if (typeof done === "function") done();
     }
   }
 
@@ -329,7 +334,18 @@
 
   function compactFingerprint() {
     var map = {};
-    for (var i = 0; i < state.tests.length; i++) map[state.tests[i].name] = state.tests[i].ok ? 1 : 0;
+    var timer = "?";
+    for (var i = 0; i < state.tests.length; i++) {
+      map[state.tests[i].name] = state.tests[i].ok ? 1 : 0;
+      if (state.tests[i].name === "performance.now resolution") timer = state.tests[i].detail || "?";
+    }
+    var memOk = 0;
+    if (state.memory && state.memory.status === "complete" && state.memory.buffers && state.memory.buffers.length) {
+      memOk = 1;
+      for (var j = 0; j < state.memory.buffers.length; j++) {
+        if (!state.memory.buffers[j].ok) memOk = 0;
+      }
+    }
     return [
       "FW=" + (state.meta.firmware || "?"),
       "UA-WK=" + (state.meta.userAgentWebKitLabel || "?"),
@@ -343,8 +359,28 @@
       "EVAL=" + (map.eval || 0),
       "FUNC=" + (map["Function constructor"] || 0),
       "WEBGL=" + (map.WebGL || 0),
-      "XFER=" + (state.worker.transferableDetachedOnMainThread ? 1 : 0)
+      "WKR=" + (state.worker && state.worker.status === "ok" ? 1 : 0),
+      "XFER=" + (state.worker && state.worker.transferableDetachedOnMainThread ? 1 : 0),
+      "MEM=" + memOk,
+      "TRES=" + timer
     ].join("|");
+  }
+
+  function runAllTests() {
+    state.worker = { status: "not-run" };
+    state.memory = { status: "not-run" };
+    setText("runStatus", "Step 1/3: runtime fingerprint...");
+    runDiagnostics();
+    setText("runStatus", "Step 2/3: Worker + transferable ArrayBuffer...");
+    runWorkerTest(function () {
+      setText("runStatus", "Step 3/3: bounded 1/4/8/16 MiB allocation...");
+      runMemoryTest();
+      state.meta.completedAll03 = true;
+      state.meta.completedAt = new Date().toISOString();
+      setText("runStatus", "Complete. Photograph Compact fingerprint + Worker result + Safe allocation result.");
+      renderAll();
+      try { document.getElementById("compact").scrollIntoView(true); } catch (_) {}
+    });
   }
 
   function renderTests() {
@@ -410,12 +446,13 @@
     setText("report", JSON.stringify(state, null, 2));
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v2", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v3", JSON.stringify(state));
     } catch (_) {}
   }
 
+  document.getElementById("runAll").addEventListener("click", runAllTests);
   document.getElementById("run").addEventListener("click", runDiagnostics);
-  document.getElementById("workerTest").addEventListener("click", runWorkerTest);
+  document.getElementById("workerTest").addEventListener("click", function () { runWorkerTest(); });
   document.getElementById("memoryTest").addEventListener("click", runMemoryTest);
   document.getElementById("showReport").addEventListener("click", function () {
     document.getElementById("report").scrollIntoView(true);
@@ -425,7 +462,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v2");
+    var cached = localStorage.getItem("ps5-1360-last-report-v3");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
