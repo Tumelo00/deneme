@@ -4,7 +4,7 @@ A non-destructive browser/runtime research host for PlayStation 5 firmware 13.60
 
 Live Pages URL: https://tumelo00.github.io/deneme/
 
-## Current build: 0.3
+## Current build: 0.4
 
 Build 0.3 is based on real output from a PS5 running 13.60. It runs the runtime fingerprint, Worker transfer test, and bounded memory allocation in one click:
 
@@ -100,3 +100,22 @@ All three tests are designed to stay in normal browser JavaScript and not modify
 This repository is for owned-hardware compatibility research. It does not include piracy tooling, account/credential access, PSN bypasses, or an automatically executed destructive kernel probe.
 
 See `RESEARCH.md` for the current technical notes and `ATTRIBUTION.md` for upstream references.
+
+
+## Advanced Stage A
+
+Build 0.4 adds a launcher for the public PSAITO userland/ROP canary on PS5 13.xx.
+
+The launcher intentionally selects `auto=hello_1320.js`, disables notifications, limits retries, and sends remote logs to the same research relay. The canary only verifies that the WebKit/userland bridge reaches a native `getpid` call. It does not intentionally run the Bagagwa kernel-UAF shot.
+
+This advanced stage is more invasive than the baseline browser diagnostics and can still close or crash the browser if the WebKit exploit fails.
+
+## Updated 13.60 post-exploit finding
+
+EchoStretch/kstuff-lite mainline contains explicit 13.60 work, including commits named:
+
+- `fix: add firmware 13.60 scalar store offset`
+- `fix: correct firmware 13.60 scalar store offset`
+- `feat: add firmware 13.60 fast-path offsets`
+
+That means the post-exploit/kstuff side is further along than the latest tagged release alone suggests. The main unresolved question for this project is reaching a stable userland/native primitive and then determining which kernel entry path is actually permitted from the WebKit sandbox.
