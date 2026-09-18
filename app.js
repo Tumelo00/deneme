@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4.2",
+      build: "0.4.3",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -567,9 +567,8 @@
 
     var target = "https://wamphyre.github.io/PSAITO/?" +
       "log=1" +
-      "&notify=0" +
       "&auto=" + encodeURIComponent("hello_1320.js") +
-      "&max=3" +
+      "&max=5" +
       "&rd=3000" +
       "&logserver=" + encodeURIComponent(logEndpoint);
 
@@ -657,7 +656,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v042", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v043", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -667,7 +666,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v042");
+    var cached = localStorage.getItem("ps5-1360-last-report-v043");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
