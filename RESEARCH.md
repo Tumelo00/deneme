@@ -114,3 +114,20 @@ EchoStretch/kstuff-lite mainline contains explicit firmware-13.60 offset work. T
 2. If `getpid` completes, the WebKit/userland bridge is proven on this hardware.
 3. Only then run a non-destructive sandbox/AIO reachability gate.
 4. Do not automatically run the destructive kernel-UAF shot.
+
+
+## Build 0.4.3: notify parameter collision
+
+The first real 13.60 Advanced Stage A run reached deep into PSAITO's userland setup but stopped before the native-call commit. The captured log showed:
+
+- WebKit base resolved.
+- RW carrier created.
+- libkernel base resolved.
+- getpid import resolved.
+- PSAITO reported `NOTIFY-TARGET ... libkernel-rva=0x4740 ... offline-verified-fw=11.60`.
+
+For firmware 13.60, PSAITO's own offsets table specifies notify offset `0x48b0`.
+
+Root cause: this launcher passed `notify=0` to disable notifications. PSAITO's index page first writes the firmware-specific notify offset into its runtime query, then forwards the incoming `notify` parameter and overwrites that offset. Therefore `notify=0` collides with PSAITO's offset parameter and prevents the intended 13.60 notify profile from reaching the exploit.
+
+Build 0.4.3 removes the launcher-side `notify=0` override and allows PSAITO to populate the 13.60 offset list normally.
