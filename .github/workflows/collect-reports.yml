@@ -116,6 +116,8 @@ jobs:
               getpid_fail = ("phase=GETPID_FAIL" in combined
                              or "phase=DIRECT_GETPID_FAIL" in combined)
               census = "phase=CAPABILITY_CENSUS_PASS" in combined
+              static_gadgets = "phase=STATIC_GADGET_MAP_PASS" in combined
+              pivot_save = "phase=LOWMEM_PIVOT_SAVE_PASS" in combined
               done = "[canary] DONE" in combined or getpid
               bridge = ("BRIDGE-BOOT" in combined or "mode ROP" in combined
                         or "phase=BRIDGE_LOAD_START" in combined
@@ -144,6 +146,8 @@ jobs:
                   f"- Bridge/native stage seen: `{bridge}`",
                   f"- getpid success seen: `{getpid}`",
                   f"- capability census seen: `{census}`",
+                  f"- static gadget map seen: `{static_gadgets}`",
+                  f"- pivot/save discovery seen: `{pivot_save}`",
                   f"- DONE seen: `{done}`",
                   f"- 13.60 notify offset observed: `{notify1360}`",
                   "",
