@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T05:03:48.420206+00:00
+Generated: 2026-09-18T05:06:37.396252+00:00
 
 ## Latest baseline run
 
@@ -14,6 +14,7 @@ Generated: 2026-09-18T05:03:48.420206+00:00
 - Stage A userland handoff: `True`
 - Bridge/native stage seen: `True`
 - getpid success seen: `True`
+- capability census seen: `False`
 - DONE seen: `True`
 - 13.60 notify offset observed: `True`
 
