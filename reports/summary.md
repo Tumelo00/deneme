@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T04:09:22.940511+00:00
+Generated: 2026-09-18T04:10:56.696516+00:00
 
 ## Latest baseline run
 
@@ -10,10 +10,19 @@ Generated: 2026-09-18T04:09:22.940511+00:00
 ## Latest Advanced Stage A
 
 - Run: `mu6ezktn-hcsy82pivjpg`
-- Verdict: **INCOMPLETE — no successful canary marker captured**
+- Verdict: **INCOMPLETE — PSAITO ran but the canary did not complete**
 - BRIDGE-BOOT seen: `False`
 - getpid success seen: `False`
 - DONE seen: `False`
+- 13.60 notify offset observed: `False`
+
+### Launch marker
+```text
+advanced_stage=A
+run=mu6ezktn-hcsy82pivjpg
+firmware=13.60
+action=launch_psaito_hello_canary
+```
 
 ### Captured PSAITO log lines
 ```text
