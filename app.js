@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4.5",
+      build: "0.4.6",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -367,86 +367,35 @@
   }
 
   function runAllTests() {
-    var startY = window.pageYOffset || document.documentElement.scrollTop || 0;
     var runBtn = document.getElementById("runAll");
+    var runId = makeRunId();
 
-    var advancedRunId = makeRunId();
-    var advancedGateKey = "ps5-1360-advanced-go-" + advancedRunId;
-    var advancedWindow = null;
-    var advancedFreshContext = false;
-
-    try { localStorage.removeItem(advancedGateKey); } catch (_) {}
-    try {
-      advancedWindow = window.open(
-        "advanced-launch.html?wait=1&run=" + encodeURIComponent(advancedRunId),
-        "_blank"
-      );
-      advancedFreshContext = !!advancedWindow && advancedWindow !== window;
-    } catch (_) {
-      advancedWindow = null;
-      advancedFreshContext = false;
-    }
-
-    state.meta.advancedRunId = advancedRunId;
-    state.meta.advancedFreshContext = advancedFreshContext;
     if (runBtn) {
       runBtn.disabled = true;
-      runBtn.textContent = "Running tests...";
-    }
-    state.worker = { status: "not-run" };
-    state.memory = { status: "not-run" };
-    state.meta.relaySentAt = null;
-    state.meta.relayRunId = null;
-
-    function keepPosition() {
-      try { window.scrollTo(0, startY); } catch (_) {}
+      runBtn.textContent = "Opening fresh Advanced Stage A...";
     }
 
-    setText("runStatus", "Step 1/3: runtime fingerprint...");
-    runDiagnostics();
-    keepPosition();
+    setText("runStatus", "Opening a fresh PSAITO browser context. No extra button press is required.");
 
-    setText("runStatus", "Step 2/3: Worker + transferable ArrayBuffer...");
-    runWorkerTest(function () {
-      keepPosition();
-      setText("runStatus", "Step 3/3: bounded 1/4/8/16 MiB allocation...");
-      runMemoryTest();
-      keepPosition();
+    var url = "advanced-launch.html?run=" + encodeURIComponent(runId);
+    var opened = null;
 
-      state.meta.completedAll03 = true;
-      state.meta.completedAt = new Date().toISOString();
-      renderAll();
-      keepPosition();
+    try {
+      opened = window.open(url, "_blank");
+    } catch (_) {
+      opened = null;
+    }
 
-      setText("runStatus", "Tests complete. Sending report automatically...");
-      if (runBtn) runBtn.textContent = "Sending report...";
+    if (opened && opened !== window) {
+      try { opened.focus(); } catch (_) {}
+      setText("runStatus", "Fresh Advanced Stage A context opened. PSAITO should start automatically in about 1–2 seconds.");
+      return;
+    }
 
-      sendRelayReport(function (ok) {
-        keepPosition();
-
-        setText(
-          "runStatus",
-          advancedFreshContext
-            ? "Baseline complete. Signaling the fresh Advanced Stage A context..."
-            : "Baseline complete. Fresh window was unavailable; using same-window fallback..."
-        );
-
-        if (runBtn) {
-          runBtn.disabled = true;
-          runBtn.textContent = "Starting Advanced Stage A...";
-        }
-
-        if (advancedFreshContext) {
-          try { localStorage.setItem(advancedGateKey, "1"); } catch (_) {}
-          try { advancedWindow.focus(); } catch (_) {}
-          return;
-        }
-
-        setTimeout(function () {
-          launchAdvancedCanary();
-        }, 700);
-      });
-    });
+    setText("runStatus", "Fresh window was blocked; continuing in this tab.");
+    setTimeout(function () {
+      location.href = url;
+    }, 300);
   }
 
   function getRelayTopic() {
@@ -663,7 +612,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v045", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v046", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -673,7 +622,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v045");
+    var cached = localStorage.getItem("ps5-1360-last-report-v046");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
