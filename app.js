@@ -377,58 +377,132 @@
       runMemoryTest();
       state.meta.completedAll03 = true;
       state.meta.completedAt = new Date().toISOString();
-      setText("runStatus", "Complete. You can now send the result directly to GitHub.");
+      setText("runStatus", "Complete. Press Send Report and the result will be relayed without any login.");
       renderAll();
-      updateGithubButton();
+      updateSendButton();
       try { document.getElementById("compact").scrollIntoView(true); } catch (_) {}
     });
   }
 
-  function buildGithubIssueUrl() {
-    var failed = [];
-    for (var i = 0; i < state.tests.length; i++) {
-      if (!state.tests[i].ok) failed.push(state.tests[i].group + " / " + state.tests[i].name + " - " + state.tests[i].detail);
-    }
-    var title = "[PS5 13.60 Result] " + (state.meta.completedAt || new Date().toISOString());
-    var body = [
-      "## PS5 13.60 automated test result",
-      "",
-      "**Firmware:** " + (state.meta.firmware || "unknown"),
-      "**UA WebKit label:** " + (state.meta.userAgentWebKitLabel || "unknown"),
-      "**Build:** " + (state.meta.build || "0.3"),
-      "",
-      "### Compact fingerprint",
-      "```text",
-      compactFingerprint(),
-      "```",
-      "",
-      "### Worker / transferable result",
-      "```json",
-      JSON.stringify(state.worker, null, 2),
-      "```",
-      "",
-      "### Safe allocation result",
-      "```json",
-      JSON.stringify(state.memory, null, 2),
-      "```",
-      "",
-      "### Failed / unavailable checks",
-      failed.length ? failed.map(function (x) { return "- " + x; }).join("\n") : "- none",
-      "",
-      "### User-Agent",
-      "```text",
-      state.meta.userAgent || "",
-      "```"
-    ].join("\n");
-    return "https://github.com/Tumelo00/deneme/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(body);
+  function getRelayTopic() {
+    var h = location.hash || "";
+    var m = h.match(/(?:^#|[&#])relay=([A-Za-z0-9_-]{8,120})/);
+    return m ? m[1] : "";
   }
 
-  function updateGithubButton() {
-    var btn = document.getElementById("sendGithub");
+  function makeRunId() {
+    var suffix = "";
+    try {
+      var a = new Uint32Array(2);
+      crypto.getRandomValues(a);
+      suffix = a[0].toString(36) + a[1].toString(36);
+    } catch (_) {
+      suffix = Math.floor(Math.random() * 0x7fffffff).toString(36);
+    }
+    return Date.now().toString(36) + "-" + suffix;
+  }
+
+  function buildRelayMessages() {
+    if (!state.meta.relayRunId) state.meta.relayRunId = makeRunId();
+    var id = state.meta.relayRunId;
+    var failed = [];
+    var all = [];
+    for (var i = 0; i < state.tests.length; i++) {
+      var t = state.tests[i];
+      all.push(t.name + "=" + (t.ok ? "1" : "0"));
+      if (!t.ok) failed.push(t.name + ": " + t.detail);
+    }
+    return [
+      "run=" + id + "\npart=1/3\n" + compactFingerprint() + "\nworker=" + JSON.stringify(state.worker),
+      "run=" + id + "\npart=2/3\nmemory=" + JSON.stringify(state.memory) + "\nfailed=" + (failed.length ? failed.join(" | ") : "none"),
+      "run=" + id + "\npart=3/3\nall=" + all.join("|")
+    ];
+  }
+
+  function publishRelayMessage(topic, title, message, done) {
+    var url = "https://ntfy.sh/" + encodeURIComponent(topic) + "/publish?title=" + encodeURIComponent(title) + "&message=" + encodeURIComponent(message) + "&tags=computer";
+    var finished = false;
+    function finish(ok) {
+      if (finished) return;
+      finished = true;
+      done(ok);
+    }
+    try {
+      if (typeof fetch === "function") {
+        fetch(url, { method: "GET" }).then(function (r) {
+          finish(!!r);
+        }).catch(function () {
+          try {
+            var img = new Image();
+            img.onload = function () { finish(true); };
+            img.onerror = function () { finish(true); };
+            img.src = url;
+            setTimeout(function () { finish(true); }, 1200);
+          } catch (_) { finish(false); }
+        });
+        setTimeout(function () {
+          if (!finished) {
+            try {
+              var img2 = new Image();
+              img2.onload = function () { finish(true); };
+              img2.onerror = function () { finish(true); };
+              img2.src = url;
+            } catch (_) {}
+          }
+        }, 2500);
+        return;
+      }
+      var img3 = new Image();
+      img3.onload = function () { finish(true); };
+      img3.onerror = function () { finish(true); };
+      img3.src = url;
+      setTimeout(function () { finish(true); }, 1200);
+    } catch (e) {
+      finish(false);
+    }
+  }
+
+  function sendRelayReport() {
+    var topic = getRelayTopic();
+    if (!(state.meta && state.meta.completedAll03)) return;
+    if (!topic) {
+      setText("runStatus", "Relay key missing. Open the private relay link I gave you, then run the test again.");
+      return;
+    }
+    var btn = document.getElementById("sendReport");
+    if (btn) btn.disabled = true;
+    var messages = buildRelayMessages();
+    var pos = 0;
+    var failed = false;
+    function next() {
+      if (pos >= messages.length) {
+        state.meta.relaySentAt = new Date().toISOString();
+        state.meta.relayTopicPresent = true;
+        renderAll();
+        setText("runStatus", failed ? "Report attempted; one relay request may have failed. Press Send Report once more if needed." : "Report sent. Just tell me: gönderdim.");
+        updateSendButton();
+        return;
+      }
+      setText("runStatus", "Sending report " + (pos + 1) + "/3...");
+      var idx = pos;
+      publishRelayMessage(topic, "PS5 13.60 " + state.meta.relayRunId + " " + (idx + 1) + "/3", messages[idx], function (ok) {
+        if (!ok) failed = true;
+        pos++;
+        setTimeout(next, 250);
+      });
+    }
+    next();
+  }
+
+  function updateSendButton() {
+    var btn = document.getElementById("sendReport");
     if (!btn) return;
     var ready = !!(state.meta && state.meta.completedAll03);
-    btn.disabled = !ready;
-    btn.textContent = ready ? "Send result to GitHub" : "Send result to GitHub (run full test first)";
+    var relay = !!getRelayTopic();
+    btn.disabled = !(ready && relay);
+    if (!relay) btn.textContent = "Send Report (private relay link required)";
+    else if (!ready) btn.textContent = "Send Report (run test first)";
+    else btn.textContent = "Send Report";
   }
   function renderTests() {
     var root = document.getElementById("features");
@@ -491,30 +565,21 @@
     setText("workerReport", JSON.stringify(state.worker, null, 2));
     setText("memoryReport", JSON.stringify(state.memory, null, 2));
     setText("report", JSON.stringify(state, null, 2));
-    updateGithubButton();
+    updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v3", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v32", JSON.stringify(state));
     } catch (_) {}
   }
 
   document.getElementById("runAll").addEventListener("click", runAllTests);
-  document.getElementById("run").addEventListener("click", runDiagnostics);
-  document.getElementById("workerTest").addEventListener("click", function () { runWorkerTest(); });
-  document.getElementById("memoryTest").addEventListener("click", runMemoryTest);
-  document.getElementById("showReport").addEventListener("click", function () {
-    document.getElementById("report").scrollIntoView(true);
-  });
-  document.getElementById("sendGithub").addEventListener("click", function () {
-    if (!(state.meta && state.meta.completedAll03)) return;
-    location.href = buildGithubIssueUrl();
-  });
+  document.getElementById("sendReport").addEventListener("click", sendRelayReport);
 
   collectMeta();
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v3");
+    var cached = localStorage.getItem("ps5-1360-last-report-v32");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
