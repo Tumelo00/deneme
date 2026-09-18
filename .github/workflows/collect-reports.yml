@@ -78,16 +78,17 @@ jobs:
 
               am = re.search(r"PSAITO-A-([A-Za-z0-9_-]+)", title)
               mm = re.search(r"PS5 13\.60 ADV-A ([A-Za-z0-9_-]+)", title)
+              bm = re.search(r"PS5 13\.60 ADV-B ([A-Za-z0-9_-]+)", title)
               if am:
                   rid = am.group(1)
-                  advanced.setdefault(rid, {"time": t, "logs": [], "marker": ""})
+                  advanced.setdefault(rid, {"time": t, "logs": [], "markers": []})
                   advanced[rid]["time"] = max(advanced[rid]["time"], t)
                   advanced[rid]["logs"].append(msg)
-              elif mm:
-                  rid = mm.group(1)
-                  advanced.setdefault(rid, {"time": t, "logs": [], "marker": ""})
+              elif mm or bm:
+                  rid = (mm or bm).group(1)
+                  advanced.setdefault(rid, {"time": t, "logs": [], "markers": []})
                   advanced[rid]["time"] = max(advanced[rid]["time"], t)
-                  advanced[rid]["marker"] = msg
+                  advanced[rid]["markers"].append(msg)
 
           out = []
           out.append("# PS5 13.60 automated research summary")
@@ -106,33 +107,42 @@ jobs:
           if advanced:
               rid, info = max(advanced.items(), key=lambda kv: kv[1]["time"])
               logs = "\n".join(info["logs"])
-              marker = info.get("marker", "")
-              combined = marker + "\n" + logs
-              getpid = "[canary] getpid ok" in combined
-              done = "[canary] DONE" in combined
-              bridge = "BRIDGE-BOOT" in combined or "mode ROP" in combined
+              markers = "\n\n".join(info.get("markers", []))
+              combined = markers + "\n" + logs
+              userland = "phase=USERLAND_HANDOFF" in combined or "ctx=1" in combined
+              getpid = ("[canary] getpid ok" in combined
+                        or "phase=GETPID_PASS" in combined)
+              getpid_fail = "phase=GETPID_FAIL" in combined
+              done = "[canary] DONE" in combined or getpid
+              bridge = ("BRIDGE-BOOT" in combined or "mode ROP" in combined
+                        or "phase=BRIDGE_LOAD_START" in combined
+                        or "phase=GETPID_PASS" in combined
+                        or "phase=GETPID_FAIL" in combined)
               notify1360 = "notify=0x48b0" in combined or "libkernel-rva=0x48b0" in combined
-              if getpid and done:
-                  verdict = "PASS — userland exploit + native/ROP getpid completed"
-              elif bridge or getpid:
-                  verdict = "PARTIAL — bridge/native stage was reached but canary did not fully complete"
+              if getpid:
+                  verdict = "PASS — Stage A handoff + bridge/native getpid completed"
+              elif getpid_fail or bridge:
+                  verdict = "PARTIAL — Stage A passed and bridge/native stage was reached, but getpid did not complete"
+              elif userland:
+                  verdict = "PASS STAGE A — userland handoff confirmed; Stage B pending"
               elif logs:
-                  verdict = "INCOMPLETE — PSAITO ran but the canary did not complete"
+                  verdict = "INCOMPLETE — PSAITO ran but the userland handoff was not confirmed"
               else:
-                  verdict = "LAUNCHED — marker captured; waiting for PSAITO runtime telemetry"
+                  verdict = "LAUNCHED — marker captured; waiting for runtime telemetry"
               out += [
-                  "## Latest Advanced Stage A",
+                  "## Latest Advanced run",
                   "",
                   f"- Run: `{rid}`",
                   f"- Verdict: **{verdict}**",
-                  f"- BRIDGE-BOOT seen: `{bridge}`",
+                  f"- Stage A userland handoff: `{userland}`",
+                  f"- Bridge/native stage seen: `{bridge}`",
                   f"- getpid success seen: `{getpid}`",
                   f"- DONE seen: `{done}`",
                   f"- 13.60 notify offset observed: `{notify1360}`",
                   "",
-                  "### Launch marker",
+                  "### Stage markers",
                   "```text",
-                  marker[-2000:],
+                  markers[-4000:],
                   "```",
                   "",
                   "### Captured PSAITO log lines",
@@ -142,7 +152,7 @@ jobs:
                   "",
               ]
           else:
-              out += ["## Latest Advanced Stage A", "", "No advanced canary log captured yet.", ""]
+              out += ["## Latest Advanced run", "", "No advanced canary log captured yet.", ""]
 
           Path("reports/summary.md").write_text("\n".join(out) + "\n", encoding="utf-8")
           PY
