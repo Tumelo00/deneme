@@ -169,3 +169,46 @@ No kernel-UAF payload is launched. The next evidence gate is:
 
 The destructive BAGAGWA shot remains intentionally disabled.
 
+## 2026-09-18 hardware result: direct native getpid confirmed
+
+Build 0.6.3 completed both the userland handoff and a direct libkernel `getpid()` call on the target PS5 13.60 console without using the heavy PSAITO bridge scan.
+
+Captured result:
+
+```text
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=35192963072
+libkernelBase=34423488512
+
+phase=DIRECT_GETPID_PASS
+pid=211
+getpidPtr=34423601248
+mode=NATURAL_NATIVE_CALL
+```
+
+The reported getpid pointer is exactly `libkernelBase + 0x1b860`, matching the 13.60 X1NON stub table.
+
+This proves on hardware:
+
+1. the WebKit exploit produced the RW/native-call handoff context,
+2. the 13.60 libkernel base was usable,
+3. the 13.60 getpid stub offset was correct,
+4. the natural collator-based native-call primitive returned a real process PID.
+
+The full PSAITO bridge remains intentionally avoided because its gadget scan caused the PS5 browser memory-pressure warning after a successful Stage A handoff.
+
+## Build 0.6.4: safe post-getpid capability census
+
+After `DIRECT_GETPID_PASS`, build 0.6.4 calls only no-argument, side-effect-free 13.60 libkernel syscall wrappers through the same lightweight native-call primitive:
+
+- getppid
+- getuid
+- geteuid
+- getgid
+- getegid
+- is_in_sandbox
+- sched_yield
+
+No kernel UAF, spray, patch, persistence, or privilege modification is attempted. The purpose is to map the browser process's userland/sandbox capabilities before choosing any further research path.
+
