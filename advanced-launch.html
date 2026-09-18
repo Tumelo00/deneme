@@ -9,14 +9,12 @@
     main{max-width:760px;margin:12vh auto;padding:28px}
     h1{font-size:26px;margin:0 0 12px}
     p{line-height:1.5;color:#aeb8c8}
-    code{color:#fff}
   </style>
 </head>
 <body>
 <main>
-  <h1>Preparing Advanced Stage A…</h1>
-  <p>This fresh browser context resets PSAITO's per-tab attempt counter. No additional input is required.</p>
-  <p id="status">Sending launch marker…</p>
+  <h1>Advanced Stage A</h1>
+  <p id="status">Waiting for the baseline test to finish…</p>
 </main>
 <script>
 (function () {
@@ -24,13 +22,15 @@
   var topic = "ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
   var q = new URLSearchParams(location.search);
   var runId = q.get("run") || (Date.now().toString(36) + "-" + Math.floor(Math.random()*0x7fffffff).toString(36));
+  var waitForSignal = q.get("wait") === "1";
   var status = document.getElementById("status");
+  var started = false;
+  var gateKey = "ps5-1360-advanced-go-" + runId;
 
-  function sendMarker() {
-    var message = "advanced_stage=A\nrun=" + runId + "\nfirmware=13.60\naction=fresh_context_launch";
+  function relay(title, message) {
     var u = "https://ntfy.sh/" + encodeURIComponent(topic) + "/publish?title=" +
-      encodeURIComponent("PS5 13.60 ADV-A " + runId) + "&message=" +
-      encodeURIComponent(message) + "&tags=computer&_=" + Date.now();
+      encodeURIComponent(title) + "&message=" + encodeURIComponent(message) +
+      "&tags=computer&_=" + Date.now();
     try {
       if (typeof fetch === "function") {
         fetch(u, {method:"GET", mode:"no-cors"}).catch(function(){});
@@ -43,21 +43,53 @@
     } catch (_) {}
   }
 
-  sendMarker();
+  function start() {
+    if (started) return;
+    started = true;
+    try { localStorage.removeItem(gateKey); } catch (_) {}
 
-  var logEndpoint = "https://ntfy.sh/" + encodeURIComponent(topic) +
-    "?title=" + encodeURIComponent("PSAITO-A-" + runId);
+    relay(
+      "PS5 13.60 ADV-A " + runId,
+      "advanced_stage=A\nrun=" + runId + "\nfirmware=13.60\naction=fresh_context_launch"
+    );
 
-  var target = "https://wamphyre.github.io/PSAITO/?" +
-    "log=1" +
-    "&auto=" + encodeURIComponent("hello_1320.js") +
-    "&max=5" +
-    "&rd=3000" +
-    "&logserver=" + encodeURIComponent(logEndpoint) +
-    "&fresh=" + encodeURIComponent(runId);
+    var logEndpoint = "https://ntfy.sh/" + encodeURIComponent(topic) +
+      "?title=" + encodeURIComponent("PSAITO-A-" + runId);
 
-  status.textContent = "Opening PSAITO with a fresh attempt counter…";
-  setTimeout(function () { location.replace(target); }, 1200);
+    var target = "https://wamphyre.github.io/PSAITO/?" +
+      "log=1" +
+      "&auto=" + encodeURIComponent("hello_1320.js") +
+      "&max=5" +
+      "&rd=3000" +
+      "&logserver=" + encodeURIComponent(logEndpoint) +
+      "&fresh=" + encodeURIComponent(runId);
+
+    status.textContent = "Baseline complete. Opening PSAITO with a fresh attempt counter…";
+    setTimeout(function () { location.replace(target); }, 1000);
+  }
+
+  if (!waitForSignal) {
+    start();
+    return;
+  }
+
+  relay(
+    "PS5 13.60 ADV-A READY " + runId,
+    "advanced_stage=A\nrun=" + runId + "\naction=fresh_context_ready"
+  );
+
+  var poll = setInterval(function () {
+    var go = "";
+    try { go = localStorage.getItem(gateKey) || ""; } catch (_) {}
+    if (go === "1") {
+      clearInterval(poll);
+      start();
+    }
+  }, 200);
+
+  setTimeout(function () {
+    if (!started) status.textContent = "Still waiting for the baseline page to signal completion…";
+  }, 15000);
 }());
 </script>
 </body>
