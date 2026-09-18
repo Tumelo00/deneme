@@ -41,3 +41,4 @@ footer{display:flex;justify-content:space-between;opacity:.5;font-size:12px;padd
   .buttons{display:block}
   button{width:100%;margin:5px 0}
 }
+.run-status{margin-top:12px;padding:11px 13px;border:1px solid #293342;border-radius:12px;background:#0c121a;font-size:13px;line-height:1.45;opacity:.82}
