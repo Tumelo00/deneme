@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4",
+      build: "0.4.2",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -404,16 +404,13 @@
       sendRelayReport(function (ok) {
         keepPosition();
 
-        if (!ok) {
-          if (runBtn) {
-            runBtn.disabled = false;
-            runBtn.textContent = "Run full research test";
-          }
-          setText("runStatus", "Baseline tests completed, but report delivery may have failed. Press the same button once more to retry.");
-          return;
-        }
+        setText(
+          "runStatus",
+          ok
+            ? "Baseline complete and report sent. Starting Advanced Stage A automatically..."
+            : "Baseline complete. Report acknowledgement was uncertain, but Advanced Stage A will still start automatically..."
+        );
 
-        setText("runStatus", "Baseline complete and report sent. Starting Advanced Stage A automatically...");
         if (runBtn) {
           runBtn.disabled = true;
           runBtn.textContent = "Starting Advanced Stage A...";
@@ -421,7 +418,7 @@
 
         setTimeout(function () {
           launchAdvancedCanary();
-        }, 700);
+        }, 1200);
       });
     });
   }
@@ -584,9 +581,15 @@
       setText("advancedStatus", "Launching automatically now...");
       setText("runStatus", "Advanced Stage A is launching. The browser may close or reload if the WebKit stage fails.");
       if (runBtn) runBtn.textContent = "Advanced Stage A running...";
+
+      try {
+        localStorage.setItem("ps5-1360-advanced-launch-url", target);
+        localStorage.setItem("ps5-1360-advanced-launch-time", new Date().toISOString());
+      } catch (_) {}
+
       setTimeout(function () {
-        location.href = target;
-      }, 500);
+        location.assign(target);
+      }, 900);
     });
   }
 
@@ -654,7 +657,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v041", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v042", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -664,7 +667,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v041");
+    var cached = localStorage.getItem("ps5-1360-last-report-v042");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
