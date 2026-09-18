@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T05:08:35.055299+00:00
+Generated: 2026-09-18T05:12:47.069099+00:00
 
 ## Latest baseline run
 
@@ -15,6 +15,8 @@ Generated: 2026-09-18T05:08:35.055299+00:00
 - Bridge/native stage seen: `True`
 - getpid success seen: `True`
 - capability census seen: `True`
+- static gadget map seen: `False`
+- pivot/save discovery seen: `False`
 - DONE seen: `True`
 - 13.60 notify offset observed: `True`
 
