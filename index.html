@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PS5 13.60 Research Runner 0.6.6</title>
+<title>PS5 13.60 Research Runner 0.6.7</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -22,18 +22,18 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.6.6</div>
+  <div class="eyebrow">RESEARCH BUILD 0.6.7</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
-  <button id="run" type="button">Run up to 3 fresh attempts</button>
+  <button id="run" type="button">Run single clean attempt</button>
   <div id="status">Ready.</div>
   <div id="scr">Waiting.</div>
 </main>
 <script>
 (function(){
   "use strict";
-  var BUILD="0.6.6";
+  var BUILD="0.6.7";
   var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
 
   function bootMarker(){
@@ -85,6 +85,11 @@
     return Date.now().toString(36)+"-"+Math.floor(Math.random()*0x7fffffff).toString(36);
   }
 
+  try{
+    sessionStorage.removeItem("ps5-1360-fresh-active");
+    sessionStorage.removeItem("ps5-1360-fresh-cycle");
+  }catch(_){}
+
   function relay(title,msg){
     var u="https://ntfy.sh/"+encodeURIComponent(TOPIC)+"/publish?title="+
       encodeURIComponent(title)+"&message="+encodeURIComponent(msg)+"&tags=computer&_="+Date.now();
@@ -128,21 +133,14 @@
 
   btn.addEventListener("click",function(){
     btn.disabled=true;
-    btn.textContent="Running fresh attempt...";
+    btn.textContent="Running single clean attempt...";
     status.textContent="Resetting PSAITO session state…";
     document.getElementById("scr").textContent="";
 
-    var freshCycle=1;
     try{
-      var active=sessionStorage.getItem("ps5-1360-fresh-active")==="1";
-      freshCycle=parseInt(sessionStorage.getItem("ps5-1360-fresh-cycle")||"1",10);
-      if(!active){
-        freshCycle=1;
-        sessionStorage.setItem("ps5-1360-fresh-active","1");
-        sessionStorage.setItem("ps5-1360-fresh-cycle","1");
-      }
-      if(!(freshCycle>=1&&freshCycle<=3)) freshCycle=1;
-    }catch(_){ freshCycle=1; }
+      sessionStorage.removeItem("ps5-1360-fresh-active");
+      sessionStorage.removeItem("ps5-1360-fresh-cycle");
+    }catch(_){}
 
     try{
       sessionStorage.removeItem("renderer-notify-auto-proof-2:attempts");
@@ -179,7 +177,7 @@
 
     try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
 
-    phase(rid,"ATTEMPT_ARMED","build=0.6.6\nmax=1\nn=512\nfresh_cycle="+freshCycle+"\nfresh_max=3\nstageb=direct-getpid-census-setjmp-probe\nnotify=0x48b0\ngps=0x334e238");
+    phase(rid,"ATTEMPT_ARMED","build=0.6.7\nmax=1\nn=512\nauto_retry=0\nstageb=direct-getpid-census-setjmp-probe\nnotify=0x48b0\ngps=0x334e238");
 
     window.onUserland=function(){
       try{
@@ -202,10 +200,6 @@
         }catch(_){}
 
         relay("PS5 13.60 ADV-A "+rid,successMsg);
-        try{
-          sessionStorage.removeItem("ps5-1360-fresh-active");
-          sessionStorage.removeItem("ps5-1360-fresh-cycle");
-        }catch(_){}
         status.textContent="USERLAND HANDOFF reached. Loading Stage B separately…";
         try{
           window.__PS5_STAGEB_META={
@@ -244,48 +238,25 @@
         return loadScript(UP+"modules/exploit.js?v="+REV+"&_="+Date.now());
       })
       .then(function(){
-        status.textContent="Exploit script loaded. Fresh attempt "+freshCycle+"/3 — waiting for userland handoff…";
+        status.textContent="Exploit script loaded. Waiting for userland handoff…";
         setTimeout(function(){
           try{
             if(window.__PS5_CTX) return;
-            if(freshCycle<3){
-              var next=freshCycle+1;
-              sessionStorage.setItem("ps5-1360-fresh-cycle",String(next));
-              phase(rid,"FRESH_PAGE_RETRY","next_cycle="+next+"\nmax=3");
-              location.replace(location.pathname+"?fresh=1&cycle="+next+"&_="+Date.now());
-            }else{
-              sessionStorage.removeItem("ps5-1360-fresh-active");
-              sessionStorage.removeItem("ps5-1360-fresh-cycle");
-              phase(rid,"FRESH_RETRY_EXHAUSTED","cycle=3\nmax=3");
-              status.textContent="Stage A missed all 3 fresh-page attempts.";
-              btn.disabled=false;
-              btn.textContent="Run up to 3 fresh attempts";
-            }
+            phase(rid,"SINGLE_ATTEMPT_NO_HANDOFF","max=1\nauto_retry=0");
+            status.textContent="Single attempt ended without userland handoff. Close and reopen the browser before retrying.";
+            btn.disabled=false;
+            btn.textContent="Run single clean attempt";
           }catch(_){}
         },9500);
       })
       .catch(function(e){
         phase(rid,"SCRIPT_LOAD_FAILED","error="+String(e&&e.message||e).slice(0,160));
-        try{
-          sessionStorage.removeItem("ps5-1360-fresh-active");
-          sessionStorage.removeItem("ps5-1360-fresh-cycle");
-        }catch(_){}
         status.textContent="Script load failed: "+e.message;
         btn.disabled=false;
-        btn.textContent="Run up to 3 fresh attempts";
+        btn.textContent="Run single clean attempt";
       });
   });
 
-  try{
-    var aq=new URLSearchParams(location.search);
-    var ac=parseInt(sessionStorage.getItem("ps5-1360-fresh-cycle")||"0",10);
-    if(aq.get("fresh")==="1" &&
-       sessionStorage.getItem("ps5-1360-fresh-active")==="1" &&
-       ac>=2 && ac<=3){
-      status.textContent="Fresh-page attempt "+ac+"/3 starting…";
-      setTimeout(function(){ try{btn.click();}catch(_){} },1400);
-    }
-  }catch(_){}
 }());
 </script>
 </body>
