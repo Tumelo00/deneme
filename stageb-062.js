@@ -123,7 +123,83 @@
       report("DIRECT_GETPID_PASS",
         "pid="+String(n)+"\ngetpidPtr="+String(target)+"\nmode=NATURAL_NATIVE_CALL");
       var st=document.getElementById("status");
-      if(st) st.textContent="DIRECT GETPID PASS — pid="+String(n);
+      if(st) st.textContent="DIRECT GETPID PASS — pid="+String(n)+" — running safe capability census…";
+
+      // Stage C: only no-argument, side-effect-free libkernel syscall wrappers.
+      // RVA values come from X1NON's PS5 13.60 syscallStubs table.
+      var SAFE_STUBS=[
+        {name:"getppid", num:39,  rva:0x1b760},
+        {name:"getuid",  num:24,  rva:0x1c9b0},
+        {name:"geteuid", num:25,  rva:0x1bd20},
+        {name:"getegid", num:43,  rva:0x1d3c0},
+        {name:"getgid",  num:47,  rva:0x1b1e0},
+        {name:"is_in_sandbox", num:585, rva:0x1d040},
+        {name:"sched_yield", num:331, rva:0x1bd80}
+      ];
+
+      function callNoArgStub(entry){
+        var ptr=Number(ctx.libkernelBase||0)+entry.rva;
+        if(!(ptr>0x800000000 && ptr<0x900000000))
+          throw new Error("bad-stub-pointer-"+entry.name);
+
+        writeQwordToArena(0x100+0x48,0);
+        writeQwordToArena(0x100+0x60,0);
+        writeQwordToArena(0x100+0xE0,ptr);
+
+        var f=ctx.aim(Number(ctx.collatorCell)+0x18);
+        var b=low48Bytes(ctx.fakeCollator);
+        for(var x=0;x<6;x++) f[x]=b[x];
+        f[6]=0; f[7]=0;
+
+        var rv;
+        try{
+          rv=ctx.compare("");
+        }finally{
+          var rr=ctx.aim(Number(ctx.collatorCell)+0x18);
+          for(var y=0;y<ctx.collatorSaved.length;y++) rr[y]=ctx.collatorSaved[y];
+        }
+        return {name:entry.name,num:entry.num,rva:entry.rva,ptr:ptr,value:Number(rv)};
+      }
+
+      var results=[];
+      var pos=0;
+
+      function nextSafeProbe(){
+        if(pos>=SAFE_STUBS.length){
+          var parts=[];
+          for(var z=0;z<results.length;z++)
+            parts.push(results[z].name+"="+String(results[z].value));
+
+          var sandbox=results.filter(function(x){return x.name==="is_in_sandbox";})[0];
+          report("CAPABILITY_CENSUS_PASS",
+            "pid="+String(n)+
+            "\n"+parts.join("\n")+
+            "\nsandbox_value="+String(sandbox?sandbox.value:"unknown")+
+            "\nmode=NATURAL_NATIVE_CALL");
+
+          var st3=document.getElementById("status");
+          if(st3) st3.textContent="STAGE C PASS — "+parts.join(" · ");
+          return;
+        }
+
+        var ent=SAFE_STUBS[pos++];
+        try{
+          var r=callNoArgStub(ent);
+          results.push(r);
+          report("CAPABILITY_PROBE",
+            "name="+r.name+"\nnum="+r.num+"\nrva=0x"+r.rva.toString(16)+
+            "\nvalue="+String(r.value));
+        }catch(e){
+          results.push({name:ent.name,num:ent.num,rva:ent.rva,value:"EX"});
+          report("CAPABILITY_PROBE_FAIL",
+            "name="+ent.name+"\nnum="+ent.num+
+            "\nerror="+String(e&&e.message||e).slice(0,180));
+        }
+
+        setTimeout(nextSafeProbe,180);
+      }
+
+      setTimeout(nextSafeProbe,350);
     }else{
       report("DIRECT_GETPID_FAIL",
         "reason=unexpected-return\nreturn="+String(result)+
