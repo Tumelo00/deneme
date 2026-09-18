@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>PS5 13.60 Research Host</title>
-  <link rel="stylesheet" href="styles.css?v=0.3.4">
+  <link rel="stylesheet" href="styles.css?v=0.4.0">
 </head>
 <body>
   <main class="wrap">
@@ -37,6 +37,19 @@
         <button id="runAll" type="button">Run test & send report</button>
       </div>
       <div id="runStatus" class="run-status">Ready. One button runs every test and sends the report automatically when finished.</div>
+    </section>
+
+    <section class="panel advanced-panel">
+      <div class="eyebrow">ADVANCED STAGE A</div>
+      <h2>Userland / ROP canary</h2>
+      <p>This launches the public PSAITO 13.xx userland research host with its harmless <code>hello_1320.js</code> canary only. It checks whether the WebKit memory primitive and ROP/native-call bridge reach <code>getpid</code> on this 13.60 console.</p>
+      <div class="notice warning">
+        This is more invasive than the normal JavaScript diagnostics and may crash or close the browser. It does <strong>not</strong> intentionally run the kernel-UAF / Bagagwa shot.
+      </div>
+      <div class="buttons">
+        <button id="advancedCanary" type="button">Start Advanced Stage A</button>
+      </div>
+      <div id="advancedStatus" class="run-status">Not started. Results will be logged automatically; no photo or GitHub login is needed.</div>
     </section>
 
     <section class="panel">
@@ -78,10 +91,10 @@
     </section>
 
     <footer>
-      <span>Research build 0.3</span>
+      <span>Research build 0.4</span>
       <span>Owned-hardware testing only</span>
     </footer>
   </main>
-  <script src="app.js?v=0.3.4"></script>
+  <script src="app.js?v=0.4.0"></script>
 </body>
 </html>
