@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.3",
+      build: "0.4",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -543,6 +543,41 @@
   function updateSendButton() {
     return;
   }
+  function launchAdvancedCanary() {
+    var btn = document.getElementById("advancedCanary");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Preparing advanced canary...";
+    }
+
+    var topic = getRelayTopic();
+    var runId = makeRunId();
+    try { localStorage.setItem("ps5-1360-advanced-run-id", runId); } catch (_) {}
+    setText("advancedStatus", "Preparing PSAITO userland canary " + runId + "...");
+
+    var logEndpoint = "https://ntfy.sh/" + encodeURIComponent(topic) +
+      "?title=" + encodeURIComponent("PSAITO-A-" + runId);
+
+    var target = "https://wamphyre.github.io/PSAITO/?" +
+      "log=1" +
+      "&notify=0" +
+      "&auto=" + encodeURIComponent("hello_1320.js") +
+      "&max=3" +
+      "&rd=3000" +
+      "&logserver=" + encodeURIComponent(logEndpoint);
+
+    var marker = "advanced_stage=A\nrun=" + runId +
+      "\nfirmware=" + (state.meta.firmware || parseFirmware(ua) || "unknown") +
+      "\naction=launch_psaito_hello_canary";
+
+    publishRelayMessage(topic, "PS5 13.60 ADV-A " + runId, marker, function () {
+      setText("advancedStatus", "Launching external userland canary. The browser may briefly close or reload if the WebKit stage fails.");
+      setTimeout(function () {
+        location.href = target;
+      }, 350);
+    });
+  }
+
   function renderTests() {
     var root = document.getElementById("features");
     root.innerHTML = "";
