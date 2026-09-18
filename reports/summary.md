@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T13:52:49.400527+00:00
+Generated: 2026-09-18T13:58:53.815851+00:00
 
 ## Latest baseline run
 
@@ -17,6 +17,7 @@ Generated: 2026-09-18T13:52:49.400527+00:00
 - capability census seen: `True`
 - static gadget map seen: `False`
 - pivot/save discovery seen: `False`
+- scanless setjmp probe seen: `False`
 - DONE seen: `True`
 - 13.60 notify offset observed: `True`
 
