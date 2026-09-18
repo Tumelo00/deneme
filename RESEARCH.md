@@ -90,3 +90,27 @@ The next console run should answer:
 8. Can ordinary 1/4/8/16 MiB ArrayBuffers be allocated and touched reliably?
 
 These results narrow the browser-runtime model without attempting a kernel exploit.
+
+
+## 2026-09-18 update: narrowed bottleneck
+
+Fresh public research narrows the 13.60 problem considerably.
+
+### Userland / WebKit side
+
+Wamphyre/PSAITO publishes 13.00-13.60 offset profiles and a documented userland canary. Its `hello_1320.js` payload only logs loader progress and calls `getpid` through the bridge. Build 0.4 launches that hosted canary directly instead of copying PSAITO source into this repository, because PSAITO's package metadata marks the project UNLICENSED.
+
+### Kernel-entry side
+
+Community testing on 13.40 reports that the userland chain can reach ROP/native calls, while AIO-family syscalls needed by one kernel path are blocked with EPERM from the WebKit sandbox. PSAITO's current work therefore includes a syscall census and alternative research paths.
+
+### Post-exploit side
+
+EchoStretch/kstuff-lite mainline contains explicit firmware-13.60 offset work. This is distinct from the older tagged release compatibility statement and indicates that 13.60 post-exploit support is actively being prepared/verified.
+
+### Next decision gate
+
+1. Run Advanced Stage A on the target 13.60 console.
+2. If `getpid` completes, the WebKit/userland bridge is proven on this hardware.
+3. Only then run a non-destructive sandbox/AIO reachability gate.
+4. Do not automatically run the destructive kernel-UAF shot.
