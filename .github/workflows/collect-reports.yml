@@ -143,3 +143,5 @@ jobs:
           git config user.email "ps5-report-bot@users.noreply.github.com"
           git commit -m "Collect PS5 research reports"
           git push
+
+# manual-trigger-marker
