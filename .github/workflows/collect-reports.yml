@@ -23,10 +23,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p reports
-          curl -fsS --retry 2             "https://ntfy.sh/ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c/json?poll=1&since=15m"             -o /tmp/ntfy.jsonl || true
+          curl -fsS --retry 2 \
+            "https://ntfy.sh/ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c/json?poll=1&since=30m" \
+            -o /tmp/ntfy.jsonl || true
           python - <<'PY'
           import json
+          import re
           from pathlib import Path
+          from datetime import datetime, timezone
 
           dst = Path("reports/latest.jsonl")
           existing = {}
@@ -51,23 +55,91 @@ jobs:
                   if obj.get("id"):
                       existing[obj["id"]] = obj
 
-          rows = sorted(existing.values(), key=lambda x: (x.get("time", 0), x.get("id", "")))[-150:]
+          rows = sorted(existing.values(), key=lambda x: (x.get("time", 0), x.get("id", "")))[-300:]
           dst.write_text(
               "".join(json.dumps(x, ensure_ascii=False, sort_keys=True) + "\n" for x in rows),
               encoding="utf-8",
           )
+
+          # Build a human-readable summary of the newest normal run and newest Advanced Stage A run.
+          normal = {}
+          advanced = {}
+          for obj in rows:
+              title = obj.get("title") or ""
+              msg = obj.get("message") or ""
+              t = obj.get("time", 0)
+
+              m = re.search(r"run=([A-Za-z0-9_-]+)", msg)
+              if m and "part=" in msg:
+                  rid = m.group(1)
+                  normal.setdefault(rid, {"time": t, "parts": []})
+                  normal[rid]["time"] = max(normal[rid]["time"], t)
+                  normal[rid]["parts"].append(msg)
+
+              am = re.search(r"PSAITO-A-([A-Za-z0-9_-]+)", title)
+              if am:
+                  rid = am.group(1)
+                  advanced.setdefault(rid, {"time": t, "logs": []})
+                  advanced[rid]["time"] = max(advanced[rid]["time"], t)
+                  advanced[rid]["logs"].append(msg)
+
+          out = []
+          out.append("# PS5 13.60 automated research summary")
+          out.append("")
+          out.append("Generated: " + datetime.now(timezone.utc).isoformat())
+          out.append("")
+
+          if normal:
+              rid, info = max(normal.items(), key=lambda kv: kv[1]["time"])
+              joined = "\n".join(info["parts"])
+              fp = next((line for line in joined.splitlines() if line.startswith("FW=")), "not found")
+              out += ["## Latest baseline run", "", f"- Run: `{rid}`", f"- Fingerprint: `{fp}`", ""]
+          else:
+              out += ["## Latest baseline run", "", "No baseline report captured yet.", ""]
+
+          if advanced:
+              rid, info = max(advanced.items(), key=lambda kv: kv[1]["time"])
+              logs = "\n".join(info["logs"])
+              getpid = "[canary] getpid ok" in logs
+              done = "[canary] DONE" in logs
+              bridge = "BRIDGE-BOOT" in logs or "mode ROP" in logs
+              if getpid and done:
+                  verdict = "PASS — userland exploit + native/ROP getpid completed"
+              elif bridge or getpid:
+                  verdict = "PARTIAL — bridge/native stage was reached but canary did not fully complete"
+              else:
+                  verdict = "INCOMPLETE — no successful canary marker captured"
+              out += [
+                  "## Latest Advanced Stage A",
+                  "",
+                  f"- Run: `{rid}`",
+                  f"- Verdict: **{verdict}**",
+                  f"- BRIDGE-BOOT seen: `{bridge}`",
+                  f"- getpid success seen: `{getpid}`",
+                  f"- DONE seen: `{done}`",
+                  "",
+                  "### Captured PSAITO log lines",
+                  "```text",
+                  logs[-12000:],
+                  "```",
+                  "",
+              ]
+          else:
+              out += ["## Latest Advanced Stage A", "", "No advanced canary log captured yet.", ""]
+
+          Path("reports/summary.md").write_text("\n".join(out) + "\n", encoding="utf-8")
           PY
 
       - name: Commit new reports
         shell: bash
         run: |
           set -euo pipefail
-          git add reports/latest.jsonl
+          git add reports/latest.jsonl reports/summary.md
           if git diff --cached --quiet; then
             echo "No new reports"
             exit 0
           fi
           git config user.name "ps5-report-bot"
           git config user.email "ps5-report-bot@users.noreply.github.com"
-          git commit -m "Collect PS5 diagnostic reports"
+          git commit -m "Collect PS5 research reports"
           git push
