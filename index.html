@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PS5 13.60 Research Runner 0.5.2</title>
+<title>PS5 13.60 Research Runner 0.5.3</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -22,7 +22,7 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.5.2</div>
+  <div class="eyebrow">RESEARCH BUILD 0.5.3</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
@@ -33,7 +33,7 @@
 <script>
 (function(){
   "use strict";
-  var BUILD="0.5.2";
+  var BUILD="0.5.3";
   var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
 
   function bootMarker(){
@@ -106,6 +106,16 @@
     });
   }
 
+  function wait(ms){
+    return new Promise(function(resolve){ setTimeout(resolve,ms); });
+  }
+
+  function phase(rid,name,extra){
+    var msg="advanced_stage=A\nrun="+rid+"\nfirmware=13.60\nphase="+name+
+      (extra ? "\n"+extra : "");
+    relay("PS5 13.60 ADV-A "+rid,msg);
+  }
+
   btn.addEventListener("click",function(){
     btn.disabled=true;
     btn.textContent="Running clean 1→5 canary...";
@@ -145,10 +155,7 @@
 
     try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
 
-    relay("PS5 13.60 ADV-A "+rid,
-      "advanced_stage=A\nrun="+rid+
-      "\nfirmware=13.60\naction=local_wrapper_050"+
-      "\nmax=5\nnotify=0x48b0\ngps=0x334e238");
+    phase(rid,"BUTTON_CLICK","build=0.5.3\nmax=5\nnotify=0x48b0\ngps=0x334e238");
 
     window.onBridgeReady=function(ps5){
       status.textContent="Bridge reached. Running getpid canary…";
@@ -167,13 +174,40 @@
       }
     };
 
-    status.textContent="Loading upstream PSAITO scripts…";
+    status.textContent="Button received. Sending diagnostic marker…";
 
-    loadScript(UP+"modules/offsets13x.js?v="+REV)
-      .then(function(){return loadScript(UP+"modules/bridge.js?v="+REV);})
-      .then(function(){return loadScript(UP+"modules/exploit.js?v="+REV);})
-      .then(function(){status.textContent="PSAITO loaded. Attempt 1 should begin now…";})
+    wait(900)
+      .then(function(){
+        status.textContent="Loading 13.60 offsets…";
+        return loadScript(UP+"modules/offsets13x.js?v="+REV+"&_="+Date.now());
+      })
+      .then(function(){
+        phase(rid,"OFFSETS_LOADED");
+        status.textContent="Offsets loaded. Loading bridge…";
+        return wait(650);
+      })
+      .then(function(){
+        return loadScript(UP+"modules/bridge.js?v="+REV+"&_="+Date.now());
+      })
+      .then(function(){
+        phase(rid,"BRIDGE_LOADED");
+        status.textContent="Bridge loaded. Exploit starts in 1 second…";
+        return wait(1000);
+      })
+      .then(function(){
+        phase(rid,"EXPLOIT_START");
+        status.textContent="Starting PSAITO attempt 1…";
+        return wait(900);
+      })
+      .then(function(){
+        return loadScript(UP+"modules/exploit.js?v="+REV+"&_="+Date.now());
+      })
+      .then(function(){
+        phase(rid,"EXPLOIT_SCRIPT_LOADED");
+        status.textContent="PSAITO exploit script loaded.";
+      })
       .catch(function(e){
+        phase(rid,"SCRIPT_LOAD_FAILED","error="+String(e&&e.message||e).slice(0,160));
         status.textContent="Script load failed: "+e.message;
         btn.disabled=false;
         btn.textContent="Run clean 1→5 canary";
