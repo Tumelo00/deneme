@@ -131,3 +131,41 @@ For firmware 13.60, PSAITO's own offsets table specifies notify offset `0x48b0`.
 Root cause: this launcher passed `notify=0` to disable notifications. PSAITO's index page first writes the firmware-specific notify offset into its runtime query, then forwards the incoming `notify` parameter and overwrites that offset. Therefore `notify=0` collides with PSAITO's offset parameter and prevents the intended 13.60 notify profile from reaching the exploit.
 
 Build 0.4.3 removes the launcher-side `notify=0` override and allows PSAITO to populate the 13.60 offset list normally.
+
+## 2026-09-18 hardware result: Stage A confirmed on firmware 13.60
+
+Build 0.5.9 produced a hardware-confirmed userland handoff on the target PS5 13.60 console.
+
+Captured relay marker:
+
+```text
+advanced_stage=A
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+```
+
+This is stronger evidence than the visible `Debug / Userland` notification alone: the exploit published `window.__PS5_CTX` and invoked the host's `onUserland()` callback.
+
+The stable condition was:
+
+- full upstream heap groom: `n=512`
+- exactly one attempt: `max=1`
+- bridge absent from the pre-handoff path
+- exploit remote logging disabled during the critical heap/timing window
+
+A/B testing showed that `n=64` reduced memory use but also removed the native Userland success signal, while repeated `n=512` attempts caused the PS5 browser memory warning. The current working interpretation is therefore: keep the full groom, but never stack automatic retries inside one browser process.
+
+## Build 0.6.0: post-handoff bridge / getpid gate
+
+Build 0.6.0 leaves the known-good Stage A path unchanged. Only after `USERLAND_HANDOFF` does it load PSAITO's bridge and run a non-destructive `getpid` canary.
+
+No kernel-UAF payload is launched. The next evidence gate is:
+
+- `GETPID_PASS`: Stage A RW primitive + bridge/native syscall path confirmed.
+- `GETPID_FAIL`: Stage A remains confirmed; bridge mode/gadget recovery needs debugging.
+- no Stage B marker: inspect bridge load/boot without changing the successful Stage A heap path.
+
+The destructive BAGAGWA shot remains intentionally disabled.
+
