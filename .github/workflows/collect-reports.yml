@@ -1,6 +1,9 @@
 name: Collect PS5 reports
 
 on:
+  push:
+    paths:
+      - ".github/workflows/collect-reports.yml"
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
