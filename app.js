@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4.7",
+      build: "0.4.8",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -370,53 +370,61 @@
     var runBtn = document.getElementById("runAll");
     var topic = getRelayTopic();
     var runId = makeRunId();
-    var ceiling = 15;
+    var ceiling = 21;
 
     try {
-      var saved = parseInt(localStorage.getItem("ps5-1360-psaito-ceiling") || "15", 10);
-      if (isFinite(saved) && saved >= 15) ceiling = saved;
-      localStorage.setItem("ps5-1360-psaito-ceiling", String(ceiling + 5));
+      var saved = parseInt(localStorage.getItem("ps5-1360-psaito-ceiling-v2") || "21", 10);
+      if (isFinite(saved) && saved >= 21) ceiling = saved;
+      localStorage.setItem("ps5-1360-psaito-ceiling-v2", String(ceiling + 5));
     } catch (_) {}
 
     if (runBtn) {
       runBtn.disabled = true;
-      runBtn.textContent = "Launching attempts up to " + ceiling + "...";
+      runBtn.textContent = "Launching attempts through " + ceiling + "...";
     }
 
     setText(
       "runStatus",
-      "Launching PSAITO in this tab. This run allows attempts up to absolute ceiling " + ceiling + "."
+      "Opening PSAITO runtime directly with verified 13.60 offsets. Current controlled ceiling: " + ceiling + "."
     );
 
     var marker = "advanced_stage=A\nrun=" + runId +
-      "\nfirmware=13.60\naction=managed_same_tab_launch" +
-      "\nmax_ceiling=" + ceiling;
-
-    try {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(
-          "https://ntfy.sh/" + encodeURIComponent(topic),
-          marker
-        );
-      }
-    } catch (_) {}
+      "\nfirmware=13.60\naction=direct_runtime_1360" +
+      "\nmax_ceiling=" + ceiling +
+      "\nnotify=0x48b0" +
+      "\ngps=0x334e238";
 
     publishRelayMessage(topic, "PS5 13.60 ADV-A " + runId, marker);
 
     var logEndpoint = "https://ntfy.sh/" + encodeURIComponent(topic) +
       "?title=" + encodeURIComponent("PSAITO-A-" + runId);
 
-    var target = "https://wamphyre.github.io/PSAITO/?" +
-      "log=1" +
-      "&auto=" + encodeURIComponent("hello_1320.js") +
-      "&max=" + encodeURIComponent(String(ceiling)) +
-      "&rd=3000" +
-      "&logserver=" + encodeURIComponent(logEndpoint) +
-      "&run=" + encodeURIComponent(runId);
+    var params = [
+      "go=1",
+      "fw=13.60",
+      "hc=" + encodeURIComponent("0x56a58,0x56ca0,0x57ce8"),
+      "gd=0x1d6fa",
+      "notify=0x48b0",
+      "gps=0x334e238",
+      "gpe=0x1b860",
+      "cls=0x334e228",
+      "cle=0x274e0",
+      "ers=0x334e230",
+      "ere=0xf7d0",
+      "log=1",
+      "auto=" + encodeURIComponent("hello_1320.js"),
+      "max=" + encodeURIComponent(String(ceiling)),
+      "rd=3000",
+      "lines=240",
+      "logserver=" + encodeURIComponent(logEndpoint),
+      "researchrun=" + encodeURIComponent(runId)
+    ];
+
+    var target = "https://wamphyre.github.io/PSAITO/runtime.html?" + params.join("&");
 
     setTimeout(function () {
       location.replace(target);
-    }, 1400);
+    }, 1500);
   }
 
   function getRelayTopic() {
@@ -633,7 +641,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v047", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v048", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -643,7 +651,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v047");
+    var cached = localStorage.getItem("ps5-1360-last-report-v048");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
