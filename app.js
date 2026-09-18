@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4.6",
+      build: "0.4.7",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -368,34 +368,55 @@
 
   function runAllTests() {
     var runBtn = document.getElementById("runAll");
+    var topic = getRelayTopic();
     var runId = makeRunId();
+    var ceiling = 15;
+
+    try {
+      var saved = parseInt(localStorage.getItem("ps5-1360-psaito-ceiling") || "15", 10);
+      if (isFinite(saved) && saved >= 15) ceiling = saved;
+      localStorage.setItem("ps5-1360-psaito-ceiling", String(ceiling + 5));
+    } catch (_) {}
 
     if (runBtn) {
       runBtn.disabled = true;
-      runBtn.textContent = "Opening fresh Advanced Stage A...";
+      runBtn.textContent = "Launching attempts up to " + ceiling + "...";
     }
 
-    setText("runStatus", "Opening a fresh PSAITO browser context. No extra button press is required.");
+    setText(
+      "runStatus",
+      "Launching PSAITO in this tab. This run allows attempts up to absolute ceiling " + ceiling + "."
+    );
 
-    var url = "advanced-launch.html?run=" + encodeURIComponent(runId);
-    var opened = null;
+    var marker = "advanced_stage=A\nrun=" + runId +
+      "\nfirmware=13.60\naction=managed_same_tab_launch" +
+      "\nmax_ceiling=" + ceiling;
 
     try {
-      opened = window.open(url, "_blank");
-    } catch (_) {
-      opened = null;
-    }
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(
+          "https://ntfy.sh/" + encodeURIComponent(topic),
+          marker
+        );
+      }
+    } catch (_) {}
 
-    if (opened && opened !== window) {
-      try { opened.focus(); } catch (_) {}
-      setText("runStatus", "Fresh Advanced Stage A context opened. PSAITO should start automatically in about 1–2 seconds.");
-      return;
-    }
+    publishRelayMessage(topic, "PS5 13.60 ADV-A " + runId, marker);
 
-    setText("runStatus", "Fresh window was blocked; continuing in this tab.");
+    var logEndpoint = "https://ntfy.sh/" + encodeURIComponent(topic) +
+      "?title=" + encodeURIComponent("PSAITO-A-" + runId);
+
+    var target = "https://wamphyre.github.io/PSAITO/?" +
+      "log=1" +
+      "&auto=" + encodeURIComponent("hello_1320.js") +
+      "&max=" + encodeURIComponent(String(ceiling)) +
+      "&rd=3000" +
+      "&logserver=" + encodeURIComponent(logEndpoint) +
+      "&run=" + encodeURIComponent(runId);
+
     setTimeout(function () {
-      location.href = url;
-    }, 300);
+      location.replace(target);
+    }, 1400);
   }
 
   function getRelayTopic() {
@@ -612,7 +633,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v046", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v047", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -622,7 +643,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v046");
+    var cached = localStorage.getItem("ps5-1360-last-report-v047");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
