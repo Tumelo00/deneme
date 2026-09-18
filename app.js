@@ -403,16 +403,25 @@
 
       sendRelayReport(function (ok) {
         keepPosition();
-        if (runBtn) {
-          runBtn.disabled = false;
-          runBtn.textContent = "Run test & send report";
+
+        if (!ok) {
+          if (runBtn) {
+            runBtn.disabled = false;
+            runBtn.textContent = "Run full research test";
+          }
+          setText("runStatus", "Baseline tests completed, but report delivery may have failed. Press the same button once more to retry.");
+          return;
         }
-        setText(
-          "runStatus",
-          ok
-            ? "Done. All tests completed and the report was sent automatically."
-            : "Tests completed, but report delivery may have failed. Press the button once more to retry."
-        );
+
+        setText("runStatus", "Baseline complete and report sent. Starting Advanced Stage A automatically...");
+        if (runBtn) {
+          runBtn.disabled = true;
+          runBtn.textContent = "Starting Advanced Stage A...";
+        }
+
+        setTimeout(function () {
+          launchAdvancedCanary();
+        }, 700);
       });
     });
   }
@@ -544,11 +553,12 @@
     return;
   }
   function launchAdvancedCanary() {
-    var btn = document.getElementById("advancedCanary");
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = "Preparing advanced canary...";
+    var runBtn = document.getElementById("runAll");
+    if (runBtn) {
+      runBtn.disabled = true;
+      runBtn.textContent = "Launching Advanced Stage A...";
     }
+    setText("runStatus", "Preparing Advanced Stage A userland/ROP canary...");
 
     var topic = getRelayTopic();
     var runId = makeRunId();
@@ -571,10 +581,12 @@
       "\naction=launch_psaito_hello_canary";
 
     publishRelayMessage(topic, "PS5 13.60 ADV-A " + runId, marker, function () {
-      setText("advancedStatus", "Launching external userland canary. The browser may briefly close or reload if the WebKit stage fails.");
+      setText("advancedStatus", "Launching automatically now...");
+      setText("runStatus", "Advanced Stage A is launching. The browser may close or reload if the WebKit stage fails.");
+      if (runBtn) runBtn.textContent = "Advanced Stage A running...";
       setTimeout(function () {
         location.href = target;
-      }, 350);
+      }, 500);
     });
   }
 
@@ -642,7 +654,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v34", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v041", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -652,7 +664,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v34");
+    var cached = localStorage.getItem("ps5-1360-last-report-v041");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
