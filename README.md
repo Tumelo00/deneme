@@ -4,9 +4,9 @@ A non-destructive browser/runtime research host for PlayStation 5 firmware 13.60
 
 Live Pages URL: https://tumelo00.github.io/deneme/
 
-## Current build: 0.2
+## Current build: 0.3
 
-The second build is based on real output from a PS5 running 13.60. It expands the original capability check into a deeper runtime fingerprint:
+Build 0.3 is based on real output from a PS5 running 13.60. It runs the runtime fingerprint, Worker transfer test, and bounded memory allocation in one click:
 
 - firmware and User-Agent parsing
 - JavaScript language/runtime capabilities
@@ -19,6 +19,27 @@ The second build is based on real output from a PS5 running 13.60. It expands th
 - WebGL/WebGL2 availability and renderer information
 - small, opt-in 1/4/8/16 MiB allocation sanity test
 - compact fingerprint string for easy photo/reporting
+
+
+## Observed target profile from build 0.2
+
+The target PS5 13.60 reported:
+
+- BigInt: available
+- eval / Function constructor: available
+- Worker: available
+- Blob URL: available
+- SharedArrayBuffer: unavailable
+- Atomics global: available, but unusable without SharedArrayBuffer
+- WebAssembly: unavailable
+- WebGL / WebGL2: unavailable
+- performance.now() observed resolution: 1.000000 ms
+- localStorage / sessionStorage / CacheStorage: available
+- IndexedDB / Service Worker: unavailable
+- fetch / XHR / WebSocket / EventSource / sendBeacon: available
+- WebCrypto subtle: available
+
+Build 0.3 automatically collects the two results that were not run in the first hardware pass: transferable ArrayBuffer behavior and the bounded allocation sanity test.
 
 ## Important WebKit finding
 
