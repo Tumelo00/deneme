@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T04:59:57.858639+00:00
+Generated: 2026-09-18T05:03:48.420206+00:00
 
 ## Latest baseline run
 
@@ -9,37 +9,116 @@ Generated: 2026-09-18T04:59:57.858639+00:00
 
 ## Latest Advanced run
 
-- Run: `mu6ho1rp-8zgujb`
-- Verdict: **LAUNCHED — marker captured; waiting for runtime telemetry**
-- Stage A userland handoff: `False`
-- Bridge/native stage seen: `False`
-- getpid success seen: `False`
-- DONE seen: `False`
+- Run: `mu6hsk3i-8o1rb8`
+- Verdict: **PASS — Stage A handoff + bridge/native getpid completed**
+- Stage A userland handoff: `True`
+- Bridge/native stage seen: `True`
+- getpid success seen: `True`
+- DONE seen: `True`
 - 13.60 notify offset observed: `True`
 
 ### Stage markers
 ```text
 advanced_stage=A
-run=mu6ho1rp-8zgujb
+run=mu6hsk3i-8o1rb8
 firmware=13.60
 phase=ATTEMPT_ARMED
-build=0.6.2
+build=0.6.3
 max=1
 n=512
+fresh_cycle=1
+fresh_max=3
 stageb=direct-getpid-no-bridge
 notify=0x48b0
 gps=0x334e238
 
 advanced_stage=A
-run=mu6ho1rp-8zgujb
+run=mu6hsk3i-8o1rb8
 firmware=13.60
 phase=ATTEMPT_ARMED
-build=0.6.2
+build=0.6.3
 max=1
 n=512
+fresh_cycle=1
+fresh_max=3
 stageb=direct-getpid-no-bridge
 notify=0x48b0
 gps=0x334e238
+
+advanced_stage=A
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=35192963072
+libkernelBase=34423488512
+
+advanced_stage=A
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=35192963072
+libkernelBase=34423488512
+
+advanced_stage=A
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=35192963072
+libkernelBase=34423488512
+
+advanced_stage=B
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=DIRECT_GETPID_START
+ctx=1
+getpidPtr=34423601248
+webkitBase=35192963072
+libkernelBase=34423488512
+
+advanced_stage=B
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=DIRECT_GETPID_PASS
+pid=211
+getpidPtr=34423601248
+mode=NATURAL_NATIVE_CALL
+
+advanced_stage=B
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=DIRECT_GETPID_START
+ctx=1
+getpidPtr=34423601248
+webkitBase=35192963072
+libkernelBase=34423488512
+
+advanced_stage=B
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=DIRECT_GETPID_PASS
+pid=211
+getpidPtr=34423601248
+mode=NATURAL_NATIVE_CALL
+
+advanced_stage=B
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=DIRECT_GETPID_PASS
+pid=211
+getpidPtr=34423601248
+mode=NATURAL_NATIVE_CALL
+
+advanced_stage=B
+run=mu6hsk3i-8o1rb8
+firmware=13.60
+phase=DIRECT_GETPID_START
+ctx=1
+getpidPtr=34423601248
+webkitBase=35192963072
+libkernelBase=34423488512
 ```
 
 ### Captured PSAITO log lines
