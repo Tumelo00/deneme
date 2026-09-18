@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PS5 13.60 Research Runner 0.5.1</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>PS5 13.60 Research Runner 0.5.2</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -19,7 +22,7 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.5.1</div>
+  <div class="eyebrow">RESEARCH BUILD 0.5.2</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
@@ -27,6 +30,37 @@
   <div id="status">Ready.</div>
   <div id="scr">Waiting.</div>
 </main>
+<script>
+(function(){
+  "use strict";
+  var BUILD="0.5.2";
+  var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
+
+  function bootMarker(){
+    var msg="page_boot=1\\nbuild="+BUILD+"\\nfirmware=13.60";
+    var u="https://ntfy.sh/"+encodeURIComponent(TOPIC)+"/publish?title="+
+      encodeURIComponent("PS5 13.60 PAGE "+BUILD)+"&message="+encodeURIComponent(msg)+
+      "&tags=computer&_="+Date.now();
+    try{ if(typeof fetch==="function") fetch(u,{method:"GET",mode:"no-cors",cache:"no-store"}).catch(function(){}); }catch(_){}
+    try{ var im=new Image(); window.__bootRelayImg=im; im.src=u; }catch(_){}
+  }
+
+  bootMarker();
+
+  try{
+    fetch("version.txt?_="+Date.now(),{cache:"no-store"})
+      .then(function(r){return r.text();})
+      .then(function(v){
+        v=String(v||"").trim();
+        if(v && v!==BUILD){
+          var next=location.pathname+"?build="+encodeURIComponent(v)+"&_="+Date.now();
+          location.replace(next);
+        }
+      })
+      .catch(function(){});
+  }catch(_){}
+}());
+</script>
 <script>
 (function(){
   "use strict";
