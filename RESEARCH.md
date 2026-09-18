@@ -212,3 +212,34 @@ After `DIRECT_GETPID_PASS`, build 0.6.4 calls only no-argument, side-effect-free
 
 No kernel UAF, spray, patch, persistence, or privilege modification is attempted. The purpose is to map the browser process's userland/sandbox capabilities before choosing any further research path.
 
+## 2026-09-18 hardware result: safe capability census confirmed
+
+Build 0.6.4 completed the post-getpid no-argument capability census on the target PS5 13.60 browser process:
+
+```text
+pid=211
+getppid=54
+getuid=1
+geteuid=1
+getgid=1
+getegid=1
+is_in_sandbox=1
+sched_yield=0
+mode=NATURAL_NATIVE_CALL
+```
+
+The important result is `is_in_sandbox=1`: the current WebKit process has a working native-call primitive and valid 13.60 libkernel stubs, but it remains sandboxed.
+
+## Build 0.6.5: read-only gadget-map discovery
+
+The next gate avoids the memory-heavy full PSAITO bridge scan.
+
+After Stage A, direct getpid, and the safe census pass, build 0.6.5:
+
+1. verifies the published X1NON 13.60 WebKit gadget RVAs byte-for-byte on the real console;
+2. if all static gadgets match, searches only for the missing stack `pivot` and stack-`save` byte patterns;
+3. uses the exploit's existing 0x100-byte movable RW window, with no large copied scan buffers;
+4. never executes the discovered gadgets.
+
+A passing result will provide the remaining addresses needed to design a scanless mini-ROP bridge without reintroducing the browser memory-pressure behavior observed with the full bridge.
+
