@@ -12,7 +12,7 @@
     <header class="hero">
       <div class="eyebrow">PS5 RESEARCH / SAFE MODE</div>
       <h1>PS5 13.60 Research Host</h1>
-      <p class="lead">A non-destructive compatibility probe for your console browser. It does not jailbreak or modify the PS5.</p>
+      <p class="lead">Build 0.2 performs a deeper, non-destructive browser and JavaScript runtime fingerprint. It does not jailbreak, patch, or modify the console.</p>
     </header>
 
     <section class="panel">
@@ -26,44 +26,61 @@
           <div id="firmware" class="value">—</div>
         </div>
         <div>
-          <div class="label">WebKit</div>
+          <div class="label">UA WebKit label</div>
           <div id="webkit" class="value">—</div>
         </div>
       </div>
-      <button id="run" type="button">Run safe diagnostics</button>
-      <button id="copy" type="button" class="secondary">Show report</button>
-    </section>
-
-    <section class="panel">
-      <h2>13.60 readiness</h2>
-      <div id="readiness" class="status-grid">
-        <div class="status"><span>Payload SDK</span><strong>13.60 supported</strong></div>
-        <div class="status"><span>Public one-click chain</span><strong>Not bundled / unverified</strong></div>
-        <div class="status"><span>kstuff-lite release</span><strong>Published through 12.70</strong></div>
-        <div class="status"><span>This page</span><strong>Safe diagnostics only</strong></div>
+      <div class="notice">
+        On PlayStation, <strong>605.1.15 is a fixed User-Agent compatibility label</strong>; it is not enough to identify the actual WebKit revision. Feature behavior is more useful than the UA number.
+      </div>
+      <div class="buttons">
+        <button id="run" type="button">Run deep safe diagnostics</button>
+        <button id="workerTest" type="button" class="secondary">Run worker / transfer test</button>
+        <button id="memoryTest" type="button" class="secondary">Run safe memory test</button>
+        <button id="showReport" type="button" class="secondary">Show report</button>
       </div>
     </section>
 
     <section class="panel">
-      <h2>Browser capability probe</h2>
-      <div id="features" class="feature-list">
-        <div class="muted">Run diagnostics to populate this section.</div>
+      <h2>13.60 research matrix</h2>
+      <div class="matrix">
+        <div class="matrix-row"><span>ps5-payload-dev/sdk</span><strong>13.60 payload build support</strong><small>Post-exploit SDK; does not provide the browser jailbreak itself.</small></div>
+        <div class="matrix-row"><span>Wamphyre/PSAITO</span><strong>Experimental 13.00–13.60 claim</strong><small>Its destructive kernel-UAF stage is intentionally not bundled here.</small></div>
+        <div class="matrix-row"><span>idlesauce/umtx2</span><strong>1.00–5.50</strong><small>Mature web host, but outside the 13.60 firmware range.</small></div>
+        <div class="matrix-row"><span>Gezine/BD-JB5</span><strong>Standalone through 13.42</strong><small>On 13.60 it documents a path only after the console is already jailbroken.</small></div>
+        <div class="matrix-row"><span>n0llptr/remote_lua_loader</span><strong>Firmware-independent entrypoint</strong><small>Game/save-data specific rather than a normal browser chain.</small></div>
+        <div class="matrix-row"><span>EchoStretch/kstuff-lite</span><strong>Latest release through 12.70</strong><small>Mainline 1.11 work is active; SDK support alone does not establish 13.60 kstuff compatibility.</small></div>
       </div>
     </section>
 
     <section class="panel">
-      <h2>Research notes</h2>
-      <p>For 13.60, the most credible development foundation is the current PS5 Payload SDK. A payload being buildable for 13.60 does not mean a public browser-to-kernel jailbreak exists for 13.60.</p>
-      <p>This host intentionally does not copy or auto-run unverified kernel UAF code. Once an independently verified 13.60 entrypoint is public, it can be added as a separate, opt-in module.</p>
+      <h2>Runtime fingerprint</h2>
+      <div id="summary" class="summary muted">Run diagnostics to build the fingerprint.</div>
+      <div id="features"></div>
     </section>
 
     <section class="panel">
-      <h2>Diagnostic report</h2>
+      <h2>Worker / transferable result</h2>
+      <pre id="workerReport">Not run yet.</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Safe allocation result</h2>
+      <pre id="memoryReport">Not run yet. This test allocates only 1, 4, 8 and 16 MiB buffers, one at a time.</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Compact fingerprint</h2>
+      <pre id="compact">No fingerprint yet.</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Full diagnostic report</h2>
       <pre id="report">No report yet.</pre>
     </section>
 
     <footer>
-      <span>Research build 0.1</span>
+      <span>Research build 0.2</span>
       <span>Owned-hardware testing only</span>
     </footer>
   </main>
