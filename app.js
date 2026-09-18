@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4.4",
+      build: "0.4.5",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -369,6 +369,26 @@
   function runAllTests() {
     var startY = window.pageYOffset || document.documentElement.scrollTop || 0;
     var runBtn = document.getElementById("runAll");
+
+    var advancedRunId = makeRunId();
+    var advancedGateKey = "ps5-1360-advanced-go-" + advancedRunId;
+    var advancedWindow = null;
+    var advancedFreshContext = false;
+
+    try { localStorage.removeItem(advancedGateKey); } catch (_) {}
+    try {
+      advancedWindow = window.open(
+        "advanced-launch.html?wait=1&run=" + encodeURIComponent(advancedRunId),
+        "_blank"
+      );
+      advancedFreshContext = !!advancedWindow && advancedWindow !== window;
+    } catch (_) {
+      advancedWindow = null;
+      advancedFreshContext = false;
+    }
+
+    state.meta.advancedRunId = advancedRunId;
+    state.meta.advancedFreshContext = advancedFreshContext;
     if (runBtn) {
       runBtn.disabled = true;
       runBtn.textContent = "Running tests...";
@@ -406,9 +426,9 @@
 
         setText(
           "runStatus",
-          ok
-            ? "Baseline complete and report sent. Starting Advanced Stage A automatically..."
-            : "Baseline complete. Report acknowledgement was uncertain, but Advanced Stage A will still start automatically..."
+          advancedFreshContext
+            ? "Baseline complete. Signaling the fresh Advanced Stage A context..."
+            : "Baseline complete. Fresh window was unavailable; using same-window fallback..."
         );
 
         if (runBtn) {
@@ -416,9 +436,15 @@
           runBtn.textContent = "Starting Advanced Stage A...";
         }
 
+        if (advancedFreshContext) {
+          try { localStorage.setItem(advancedGateKey, "1"); } catch (_) {}
+          try { advancedWindow.focus(); } catch (_) {}
+          return;
+        }
+
         setTimeout(function () {
           launchAdvancedCanary();
-        }, 1200);
+        }, 700);
       });
     });
   }
@@ -473,17 +499,21 @@
       "&tags=computer&_=" + Date.now();
 
     try {
+      if (typeof fetch === "function") {
+        fetch(url, { method: "GET", mode: "no-cors" }).catch(function () {});
+      }
+    } catch (_) {}
+
+    try {
       if (!window.__ps5RelayImages) window.__ps5RelayImages = [];
       var img = new Image();
       window.__ps5RelayImages.push(img);
       img.src = url;
     } catch (_) {}
 
-    // PS5 WebKit can leave fetch/image completion callbacks pending even though
-    // the request was already transmitted. Never block the research flow on ACK.
     setTimeout(function () {
       if (typeof done === "function") done(true);
-    }, 450);
+    }, 350);
   }
 
   function sendRelayReport(done) {
@@ -633,7 +663,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v044", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v045", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -643,7 +673,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v044");
+    var cached = localStorage.getItem("ps5-1360-last-report-v045");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
