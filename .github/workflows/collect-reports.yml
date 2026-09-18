@@ -227,3 +227,5 @@ jobs:
 # trigger-after-066-no-userland-memory-warning
 
 # trigger-after-067-stopped-one
+
+# trigger-after-latest-067-userland-before-stable
