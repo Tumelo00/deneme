@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T04:49:49.342316+00:00
+Generated: 2026-09-18T04:53:02.552590+00:00
 
 ## Latest baseline run
 
@@ -9,9 +9,9 @@ Generated: 2026-09-18T04:49:49.342316+00:00
 
 ## Latest Advanced run
 
-- Run: `mu6h7xuu-cpet07`
-- Verdict: **PASS STAGE A — userland handoff confirmed; Stage B pending**
-- Stage A userland handoff: `True`
+- Run: `mu6he5xo-nrz00n`
+- Verdict: **LAUNCHED — marker captured; waiting for runtime telemetry**
+- Stage A userland handoff: `False`
 - Bridge/native stage seen: `False`
 - getpid success seen: `False`
 - DONE seen: `False`
@@ -20,50 +20,26 @@ Generated: 2026-09-18T04:49:49.342316+00:00
 ### Stage markers
 ```text
 advanced_stage=A
-run=mu6h7xuu-cpet07
+run=mu6he5xo-nrz00n
 firmware=13.60
 phase=ATTEMPT_ARMED
-build=0.5.9
+build=0.6.0
 max=1
 n=512
-bridge=disabled
+bridge=post-handoff
 notify=0x48b0
 gps=0x334e238
 
 advanced_stage=A
-run=mu6h7xuu-cpet07
+run=mu6he5xo-nrz00n
 firmware=13.60
 phase=ATTEMPT_ARMED
-build=0.5.9
+build=0.6.0
 max=1
 n=512
-bridge=disabled
+bridge=post-handoff
 notify=0x48b0
 gps=0x334e238
-
-advanced_stage=A
-run=mu6h7xuu-cpet07
-firmware=13.60
-phase=USERLAND_HANDOFF
-ctx=1
-webkitBase=34542698496
-libkernelBase=34709929984
-
-advanced_stage=A
-run=mu6h7xuu-cpet07
-firmware=13.60
-phase=USERLAND_HANDOFF
-ctx=1
-webkitBase=34542698496
-libkernelBase=34709929984
-
-advanced_stage=A
-run=mu6h7xuu-cpet07
-firmware=13.60
-phase=USERLAND_HANDOFF
-ctx=1
-webkitBase=34542698496
-libkernelBase=34709929984
 ```
 
 ### Captured PSAITO log lines
