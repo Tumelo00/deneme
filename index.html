@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PS5 13.60 Research Runner 0.6.5</title>
+<title>PS5 13.60 Research Runner 0.6.6</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -22,7 +22,7 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.6.5</div>
+  <div class="eyebrow">RESEARCH BUILD 0.6.6</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
@@ -33,7 +33,7 @@
 <script>
 (function(){
   "use strict";
-  var BUILD="0.6.5";
+  var BUILD="0.6.6";
   var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
 
   function bootMarker(){
@@ -179,7 +179,7 @@
 
     try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
 
-    phase(rid,"ATTEMPT_ARMED","build=0.6.5\nmax=1\nn=512\nfresh_cycle="+freshCycle+"\nfresh_max=3\nstageb=direct-getpid-census-readonly-gadget-map\nnotify=0x48b0\ngps=0x334e238");
+    phase(rid,"ATTEMPT_ARMED","build=0.6.6\nmax=1\nn=512\nfresh_cycle="+freshCycle+"\nfresh_max=3\nstageb=direct-getpid-census-setjmp-probe\nnotify=0x48b0\ngps=0x334e238");
 
     window.onUserland=function(){
       try{
@@ -216,7 +216,7 @@
           };
           setTimeout(function(){
             var sb=document.createElement("script");
-            sb.src="stageb-065.js?_="+Date.now();
+            sb.src="stageb-066.js?_="+Date.now();
             document.head.appendChild(sb);
           },1500);
         }catch(_){};
