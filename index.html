@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PS5 13.60 Research Runner 0.5.5</title>
+<title>PS5 13.60 Research Runner 0.5.6</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -22,18 +22,18 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.5.5</div>
+  <div class="eyebrow">RESEARCH BUILD 0.5.6</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
-  <button id="run" type="button">Run low-memory single attempt</button>
+  <button id="run" type="button">Run isolated userland attempt</button>
   <div id="status">Ready.</div>
   <div id="scr">Waiting.</div>
 </main>
 <script>
 (function(){
   "use strict";
-  var BUILD="0.5.5";
+  var BUILD="0.5.6";
   var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
 
   function bootMarker(){
@@ -118,7 +118,7 @@
 
   btn.addEventListener("click",function(){
     btn.disabled=true;
-    btn.textContent="Running low-memory single attempt...";
+    btn.textContent="Running isolated userland attempt...";
     status.textContent="Resetting PSAITO session state…";
     document.getElementById("scr").textContent="";
 
@@ -173,7 +173,7 @@
       }
     }catch(_){}
 
-    phase(rid,"TELEMETRY_MIRROR_READY","build=0.5.5");
+    phase(rid,"TELEMETRY_MIRROR_READY","build=0.5.6");
 
     var q=[
       "go=1",
@@ -189,7 +189,7 @@
       "ere=0xf7d0",
       "log=1",
       "max=1",
-      "n=64",
+      "n=512",
       "rd=8000",
       "lines=260",
       "logserver="+encodeURIComponent(logEndpoint),
@@ -198,62 +198,52 @@
 
     try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
 
-    phase(rid,"BUTTON_CLICK","build=0.5.5\nmax=5\nnotify=0x48b0\ngps=0x334e238");
+    phase(rid,"BUTTON_CLICK","build=0.5.6\nmax=1\nn=512\nbridge=disabled\nnotify=0x48b0\ngps=0x334e238");
 
-    window.onBridgeReady=function(ps5){
-      status.textContent="Bridge reached. Running getpid canary…";
+    window.onUserland=function(){
       try{
-        var pid=window.syscall(window.SYSCALL.getpid);
-        var line="[canary] getpid ok = "+String(pid);
-        postLog(logEndpoint,line);
-        if(window.log) window.log(line);
-        postLog(logEndpoint,"[canary] DONE - payload completed without crash");
-        if(window.log) window.log("[canary] DONE - payload completed without crash");
-        status.textContent="SUCCESS — getpid canary completed.";
+        var ctx=window.__PS5_CTX || {};
+        phase(
+          rid,
+          "USERLAND_HANDOFF",
+          "ctx=1\nwebkitBase="+String(ctx.webkitBase||0)+
+          "\nlibkernelBase="+String(ctx.libkernelBase||0)
+        );
+        status.textContent="USERLAND HANDOFF reached. Bridge intentionally disabled.";
       }catch(e){
-        var fail="[canary] getpid failed: "+String(e&&e.message||e);
-        postLog(logEndpoint,fail);
-        status.textContent=fail;
+        phase(rid,"USERLAND_HANDOFF_ERROR","error="+String(e&&e.message||e).slice(0,160));
       }
     };
 
     status.textContent="Button received. Sending diagnostic marker…";
 
-    wait(900)
+    wait(1500)
       .then(function(){
-        status.textContent="Loading 13.60 offsets…";
+        status.textContent="Loading verified 13.60 offsets…";
         return loadScript(UP+"modules/offsets13x.js?v="+REV+"&_="+Date.now());
       })
       .then(function(){
-        phase(rid,"OFFSETS_LOADED");
-        status.textContent="Offsets loaded. Loading bridge…";
-        return wait(650);
+        phase(rid,"OFFSETS_LOADED","n=512\nmax=1\nbridge=disabled");
+        status.textContent="Offsets loaded. Starting one isolated exploit attempt in 2 seconds…";
+        return wait(2000);
       })
       .then(function(){
-        return loadScript(UP+"modules/bridge.js?v="+REV+"&_="+Date.now());
-      })
-      .then(function(){
-        phase(rid,"BRIDGE_LOADED");
-        status.textContent="Bridge loaded. Exploit starts in 1 second…";
-        return wait(1000);
-      })
-      .then(function(){
-        phase(rid,"EXPLOIT_START");
-        status.textContent="Starting PSAITO attempt 1…";
-        return wait(900);
+        phase(rid,"EXPLOIT_START","n=512\nmax=1\nbridge=disabled");
+        status.textContent="Starting isolated PSAITO attempt 1…";
+        return wait(1200);
       })
       .then(function(){
         return loadScript(UP+"modules/exploit.js?v="+REV+"&_="+Date.now());
       })
       .then(function(){
         phase(rid,"EXPLOIT_SCRIPT_LOADED");
-        status.textContent="PSAITO exploit script loaded.";
+        status.textContent="Exploit script loaded. Waiting for userland handoff…";
       })
       .catch(function(e){
         phase(rid,"SCRIPT_LOAD_FAILED","error="+String(e&&e.message||e).slice(0,160));
         status.textContent="Script load failed: "+e.message;
         btn.disabled=false;
-        btn.textContent="Run low-memory single attempt";
+        btn.textContent="Run isolated userland attempt";
       });
   });
 }());
