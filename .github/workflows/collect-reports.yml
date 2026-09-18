@@ -118,6 +118,7 @@ jobs:
               census = "phase=CAPABILITY_CENSUS_PASS" in combined
               static_gadgets = "phase=STATIC_GADGET_MAP_PASS" in combined
               pivot_save = "phase=LOWMEM_PIVOT_SAVE_PASS" in combined
+              setjmp_probe = "phase=SETJMP_PROBE_PASS" in combined
               done = "[canary] DONE" in combined or getpid
               bridge = ("BRIDGE-BOOT" in combined or "mode ROP" in combined
                         or "phase=BRIDGE_LOAD_START" in combined
@@ -148,6 +149,7 @@ jobs:
                   f"- capability census seen: `{census}`",
                   f"- static gadget map seen: `{static_gadgets}`",
                   f"- pivot/save discovery seen: `{pivot_save}`",
+                  f"- scanless setjmp probe seen: `{setjmp_probe}`",
                   f"- DONE seen: `{done}`",
                   f"- 13.60 notify offset observed: `{notify1360}`",
                   "",
