@@ -385,9 +385,17 @@
   }
 
   function getRelayTopic() {
+    var defaultTopic = "ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
     var h = location.hash || "";
-    var m = h.match(/(?:^#|[&#])relay=([A-Za-z0-9_-]{8,120})/);
-    return m ? m[1] : "";
+    var q = location.search || "";
+    var m = h.match(/(?:^#|[&#])relay=([A-Za-z0-9_-]{8,120})/) ||
+            q.match(/(?:^\?|[&])relay=([A-Za-z0-9_-]{8,120})/);
+    var topic = m ? m[1] : "";
+    try {
+      if (topic) localStorage.setItem("ps5-1360-relay-topic", topic);
+      if (!topic) topic = localStorage.getItem("ps5-1360-relay-topic") || "";
+    } catch (_) {}
+    return topic || defaultTopic;
   }
 
   function makeRunId() {
@@ -498,11 +506,8 @@
     var btn = document.getElementById("sendReport");
     if (!btn) return;
     var ready = !!(state.meta && state.meta.completedAll03);
-    var relay = !!getRelayTopic();
-    btn.disabled = !(ready && relay);
-    if (!relay) btn.textContent = "Send Report (private relay link required)";
-    else if (!ready) btn.textContent = "Send Report (run test first)";
-    else btn.textContent = "Send Report";
+    btn.disabled = !ready;
+    btn.textContent = ready ? "Send Report" : "Send Report (run test first)";
   }
   function renderTests() {
     var root = document.getElementById("features");
