@@ -115,6 +115,7 @@ jobs:
                         or "phase=DIRECT_GETPID_PASS" in combined)
               getpid_fail = ("phase=GETPID_FAIL" in combined
                              or "phase=DIRECT_GETPID_FAIL" in combined)
+              census = "phase=CAPABILITY_CENSUS_PASS" in combined
               done = "[canary] DONE" in combined or getpid
               bridge = ("BRIDGE-BOOT" in combined or "mode ROP" in combined
                         or "phase=BRIDGE_LOAD_START" in combined
@@ -142,6 +143,7 @@ jobs:
                   f"- Stage A userland handoff: `{userland}`",
                   f"- Bridge/native stage seen: `{bridge}`",
                   f"- getpid success seen: `{getpid}`",
+                  f"- capability census seen: `{census}`",
                   f"- DONE seen: `{done}`",
                   f"- 13.60 notify offset observed: `{notify1360}`",
                   "",
