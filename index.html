@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PS5 13.60 Research Runner 0.5.4</title>
+<title>PS5 13.60 Research Runner 0.5.5</title>
 <style>
   html,body{margin:0;background:#07090d;color:#e9eef6;font-family:Arial,sans-serif}
   main{max-width:820px;margin:8vh auto;padding:28px}
@@ -22,7 +22,7 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">RESEARCH BUILD 0.5.4</div>
+  <div class="eyebrow">RESEARCH BUILD 0.5.5</div>
   <h1 class="header">PS5 13.60 clean userland canary</h1>
   <p id="fw-label">FW 13.60</p>
   <p>One press resets the PSAITO per-session attempt state, loads the upstream userland scripts with verified 13.60 offsets, and runs at most five attempts.</p>
@@ -33,7 +33,7 @@
 <script>
 (function(){
   "use strict";
-  var BUILD="0.5.4";
+  var BUILD="0.5.5";
   var TOPIC="ps5-1360-tumelo-4m7q2v9x6k3n8r5p1d0c";
 
   function bootMarker(){
@@ -133,6 +133,48 @@
     var logEndpoint="https://ntfy.sh/"+encodeURIComponent(TOPIC)+
       "?title="+encodeURIComponent("PSAITO-A-"+rid);
 
+    // Mirror critical PSAITO POST log lines through our known-working GET relay.
+    // This avoids losing the diagnostic if PS5 WebKit drops the original XHR POST.
+    try{
+      if(!window.__ps5MirrorInstalled){
+        window.__ps5MirrorInstalled=true;
+        var _open=XMLHttpRequest.prototype.open;
+        var _send=XMLHttpRequest.prototype.send;
+
+        XMLHttpRequest.prototype.open=function(method,url){
+          this.__ps5Method=String(method||"").toUpperCase();
+          this.__ps5Url=String(url||"");
+          return _open.apply(this,arguments);
+        };
+
+        XMLHttpRequest.prototype.send=function(body){
+          try{
+            var text=typeof body==="string" ? body : "";
+            var critical=
+              text.indexOf("ATTEMPT-")>=0 ||
+              text.indexOf("WEBKIT-BASE")>=0 ||
+              text.indexOf("KERNEL-")>=0 ||
+              text.indexOf("NOTIFY-")>=0 ||
+              text.indexOf("MODULE-IMPORT")>=0 ||
+              text.indexOf("IMPORT-WINDOW")>=0 ||
+              text.indexOf("REQUIREMENTS-")>=0 ||
+              text.indexOf("LIBC-")>=0 ||
+              text.indexOf("NATIVE-")>=0 ||
+              text.indexOf("RW-CARRIER")>=0 ||
+              text.indexOf("AUTO-RETRY")>=0 ||
+              text.indexOf("SURVIVED-")>=0 ||
+              text.indexOf("USERLAND")>=0;
+            if(this.__ps5Method==="POST" && text && critical){
+              relay("PSAITO-A-"+rid,text);
+            }
+          }catch(_){}
+          return _send.apply(this,arguments);
+        };
+      }
+    }catch(_){}
+
+    phase(rid,"TELEMETRY_MIRROR_READY","build=0.5.5");
+
     var q=[
       "go=1",
       "fw=13.60",
@@ -156,7 +198,7 @@
 
     try{history.replaceState(null,"",location.pathname+"?"+q);}catch(_){}
 
-    phase(rid,"BUTTON_CLICK","build=0.5.4\nmax=5\nnotify=0x48b0\ngps=0x334e238");
+    phase(rid,"BUTTON_CLICK","build=0.5.5\nmax=5\nnotify=0x48b0\ngps=0x334e238");
 
     window.onBridgeReady=function(ps5){
       status.textContent="Bridge reached. Running getpid canary…";
