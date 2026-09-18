@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-09-18T04:53:02.552590+00:00
+Generated: 2026-09-18T04:56:35.890406+00:00
 
 ## Latest baseline run
 
@@ -9,10 +9,10 @@ Generated: 2026-09-18T04:53:02.552590+00:00
 
 ## Latest Advanced run
 
-- Run: `mu6he5xo-nrz00n`
-- Verdict: **LAUNCHED — marker captured; waiting for runtime telemetry**
-- Stage A userland handoff: `False`
-- Bridge/native stage seen: `False`
+- Run: `mu6hjcev-9td768`
+- Verdict: **PARTIAL — Stage A passed and bridge/native stage was reached, but getpid did not complete**
+- Stage A userland handoff: `True`
+- Bridge/native stage seen: `True`
 - getpid success seen: `False`
 - DONE seen: `False`
 - 13.60 notify offset observed: `True`
@@ -20,26 +20,89 @@ Generated: 2026-09-18T04:53:02.552590+00:00
 ### Stage markers
 ```text
 advanced_stage=A
-run=mu6he5xo-nrz00n
+run=mu6hjcev-9td768
 firmware=13.60
 phase=ATTEMPT_ARMED
-build=0.6.0
+build=0.6.1
 max=1
 n=512
-bridge=post-handoff
+bridge=deferred-external
 notify=0x48b0
 gps=0x334e238
 
 advanced_stage=A
-run=mu6he5xo-nrz00n
+run=mu6hjcev-9td768
 firmware=13.60
 phase=ATTEMPT_ARMED
-build=0.6.0
+build=0.6.1
 max=1
 n=512
-bridge=post-handoff
+bridge=deferred-external
 notify=0x48b0
 gps=0x334e238
+
+advanced_stage=A
+run=mu6hjcev-9td768
+firmware=13.60
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+
+advanced_stage=A
+run=mu6hjcev-9td768
+firmware=13.60
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+
+advanced_stage=A
+run=mu6hjcev-9td768
+firmware=13.60
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+
+advanced_stage=B
+run=mu6hjcev-9td768
+firmware=13.60
+phase=BRIDGE_SCRIPT_LOADED
+
+advanced_stage=B
+run=mu6hjcev-9td768
+firmware=13.60
+phase=BRIDGE_SCRIPT_LOADED
+
+advanced_stage=B
+run=mu6hjcev-9td768
+firmware=13.60
+phase=BRIDGE_SCRIPT_LOADED
+
+advanced_stage=B
+run=mu6hjcev-9td768
+firmware=13.60
+phase=BRIDGE_LOAD_START
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+
+advanced_stage=B
+run=mu6hjcev-9td768
+firmware=13.60
+phase=BRIDGE_LOAD_START
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+
+advanced_stage=B
+run=mu6hjcev-9td768
+firmware=13.60
+phase=BRIDGE_LOAD_START
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
 ```
 
 ### Captured PSAITO log lines
