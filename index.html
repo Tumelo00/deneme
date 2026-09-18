@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>PS5 13.60 Research Host</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="eyebrow">PS5 RESEARCH / SAFE MODE</div>
+      <h1>PS5 13.60 Research Host</h1>
+      <p class="lead">A non-destructive compatibility probe for your console browser. It does not jailbreak or modify the PS5.</p>
+    </header>
+
+    <section class="panel">
+      <div class="row">
+        <div>
+          <div class="label">Detected device</div>
+          <div id="device" class="value">Not checked</div>
+        </div>
+        <div>
+          <div class="label">Firmware</div>
+          <div id="firmware" class="value">—</div>
+        </div>
+        <div>
+          <div class="label">WebKit</div>
+          <div id="webkit" class="value">—</div>
+        </div>
+      </div>
+      <button id="run" type="button">Run safe diagnostics</button>
+      <button id="copy" type="button" class="secondary">Show report</button>
+    </section>
+
+    <section class="panel">
+      <h2>13.60 readiness</h2>
+      <div id="readiness" class="status-grid">
+        <div class="status"><span>Payload SDK</span><strong>13.60 supported</strong></div>
+        <div class="status"><span>Public one-click chain</span><strong>Not bundled / unverified</strong></div>
+        <div class="status"><span>kstuff-lite release</span><strong>Published through 12.70</strong></div>
+        <div class="status"><span>This page</span><strong>Safe diagnostics only</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Browser capability probe</h2>
+      <div id="features" class="feature-list">
+        <div class="muted">Run diagnostics to populate this section.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Research notes</h2>
+      <p>For 13.60, the most credible development foundation is the current PS5 Payload SDK. A payload being buildable for 13.60 does not mean a public browser-to-kernel jailbreak exists for 13.60.</p>
+      <p>This host intentionally does not copy or auto-run unverified kernel UAF code. Once an independently verified 13.60 entrypoint is public, it can be added as a separate, opt-in module.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Diagnostic report</h2>
+      <pre id="report">No report yet.</pre>
+    </section>
+
+    <footer>
+      <span>Research build 0.1</span>
+      <span>Owned-hardware testing only</span>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
