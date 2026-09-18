@@ -77,11 +77,17 @@ jobs:
                   normal[rid]["parts"].append(msg)
 
               am = re.search(r"PSAITO-A-([A-Za-z0-9_-]+)", title)
+              mm = re.search(r"PS5 13\.60 ADV-A ([A-Za-z0-9_-]+)", title)
               if am:
                   rid = am.group(1)
-                  advanced.setdefault(rid, {"time": t, "logs": []})
+                  advanced.setdefault(rid, {"time": t, "logs": [], "marker": ""})
                   advanced[rid]["time"] = max(advanced[rid]["time"], t)
                   advanced[rid]["logs"].append(msg)
+              elif mm:
+                  rid = mm.group(1)
+                  advanced.setdefault(rid, {"time": t, "logs": [], "marker": ""})
+                  advanced[rid]["time"] = max(advanced[rid]["time"], t)
+                  advanced[rid]["marker"] = msg
 
           out = []
           out.append("# PS5 13.60 automated research summary")
@@ -100,15 +106,20 @@ jobs:
           if advanced:
               rid, info = max(advanced.items(), key=lambda kv: kv[1]["time"])
               logs = "\n".join(info["logs"])
-              getpid = "[canary] getpid ok" in logs
-              done = "[canary] DONE" in logs
-              bridge = "BRIDGE-BOOT" in logs or "mode ROP" in logs
+              marker = info.get("marker", "")
+              combined = marker + "\n" + logs
+              getpid = "[canary] getpid ok" in combined
+              done = "[canary] DONE" in combined
+              bridge = "BRIDGE-BOOT" in combined or "mode ROP" in combined
+              notify1360 = "notify=0x48b0" in combined or "libkernel-rva=0x48b0" in combined
               if getpid and done:
                   verdict = "PASS — userland exploit + native/ROP getpid completed"
               elif bridge or getpid:
                   verdict = "PARTIAL — bridge/native stage was reached but canary did not fully complete"
+              elif logs:
+                  verdict = "INCOMPLETE — PSAITO ran but the canary did not complete"
               else:
-                  verdict = "INCOMPLETE — no successful canary marker captured"
+                  verdict = "LAUNCHED — marker captured; waiting for PSAITO runtime telemetry"
               out += [
                   "## Latest Advanced Stage A",
                   "",
@@ -117,6 +128,12 @@ jobs:
                   f"- BRIDGE-BOOT seen: `{bridge}`",
                   f"- getpid success seen: `{getpid}`",
                   f"- DONE seen: `{done}`",
+                  f"- 13.60 notify offset observed: `{notify1360}`",
+                  "",
+                  "### Launch marker",
+                  "```text",
+                  marker[-2000:],
+                  "```",
                   "",
                   "### Captured PSAITO log lines",
                   "```text",
