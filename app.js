@@ -367,20 +367,53 @@
   }
 
   function runAllTests() {
+    var startY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var runBtn = document.getElementById("runAll");
+    if (runBtn) {
+      runBtn.disabled = true;
+      runBtn.textContent = "Running tests...";
+    }
     state.worker = { status: "not-run" };
     state.memory = { status: "not-run" };
+    state.meta.relaySentAt = null;
+    state.meta.relayRunId = null;
+
+    function keepPosition() {
+      try { window.scrollTo(0, startY); } catch (_) {}
+    }
+
     setText("runStatus", "Step 1/3: runtime fingerprint...");
     runDiagnostics();
+    keepPosition();
+
     setText("runStatus", "Step 2/3: Worker + transferable ArrayBuffer...");
     runWorkerTest(function () {
+      keepPosition();
       setText("runStatus", "Step 3/3: bounded 1/4/8/16 MiB allocation...");
       runMemoryTest();
+      keepPosition();
+
       state.meta.completedAll03 = true;
       state.meta.completedAt = new Date().toISOString();
-      setText("runStatus", "Complete. Press Send Report and the result will be relayed without any login.");
       renderAll();
-      updateSendButton();
-      try { document.getElementById("compact").scrollIntoView(true); } catch (_) {}
+      keepPosition();
+
+      setText("runStatus", "Tests complete. Sending report automatically...");
+      if (runBtn) runBtn.textContent = "Sending report...";
+
+      sendRelayReport(function (ok) {
+        keepPosition();
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.textContent = "Run test & send report";
+        }
+        setText(
+          "runStatus",
+          ok
+            ? "Done. All tests completed and the report was sent automatically."
+            : "Tests completed, but report delivery may have failed. Press the button once more to retry."
+        );
+      });
     });
   }
 
@@ -470,11 +503,15 @@
     }
   }
 
-  function sendRelayReport() {
+  function sendRelayReport(done) {
     var topic = getRelayTopic();
-    if (!(state.meta && state.meta.completedAll03)) return;
+    if (!(state.meta && state.meta.completedAll03)) {
+      if (typeof done === "function") done(false);
+      return;
+    }
     if (!topic) {
-      setText("runStatus", "Relay key missing. Open the private relay link I gave you, then run the test again.");
+      setText("runStatus", "Relay configuration missing.");
+      if (typeof done === "function") done(false);
       return;
     }
     var btn = document.getElementById("sendReport");
@@ -487,8 +524,9 @@
         state.meta.relaySentAt = new Date().toISOString();
         state.meta.relayTopicPresent = true;
         renderAll();
-        setText("runStatus", failed ? "Report attempted; one relay request may have failed. Press Send Report once more if needed." : "Report sent. Just tell me: gönderdim.");
+        setText("runStatus", failed ? "Report attempted; one relay request may have failed." : "Report sent.");
         updateSendButton();
+        if (typeof done === "function") done(!failed);
         return;
       }
       setText("runStatus", "Sending report " + (pos + 1) + "/3...");
@@ -503,11 +541,7 @@
   }
 
   function updateSendButton() {
-    var btn = document.getElementById("sendReport");
-    if (!btn) return;
-    var ready = !!(state.meta && state.meta.completedAll03);
-    btn.disabled = !ready;
-    btn.textContent = ready ? "Send Report" : "Send Report (run test first)";
+    return;
   }
   function renderTests() {
     var root = document.getElementById("features");
@@ -573,18 +607,17 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v32", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v34", JSON.stringify(state));
     } catch (_) {}
   }
 
   document.getElementById("runAll").addEventListener("click", runAllTests);
-  document.getElementById("sendReport").addEventListener("click", sendRelayReport);
 
   collectMeta();
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v32");
+    var cached = localStorage.getItem("ps5-1360-last-report-v34");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
