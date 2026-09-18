@@ -109,7 +109,7 @@
   function collectMeta() {
     var fw = parseFirmware(ua) || "unknown";
     state.meta = {
-      build: "0.4.3",
+      build: "0.4.4",
       timestamp: new Date().toISOString(),
       device: isPS5(ua) ? "PlayStation 5" : "Other / unknown",
       firmware: fw,
@@ -467,46 +467,23 @@
   }
 
   function publishRelayMessage(topic, title, message, done) {
-    var url = "https://ntfy.sh/" + encodeURIComponent(topic) + "/publish?title=" + encodeURIComponent(title) + "&message=" + encodeURIComponent(message) + "&tags=computer";
-    var finished = false;
-    function finish(ok) {
-      if (finished) return;
-      finished = true;
-      done(ok);
-    }
+    var url = "https://ntfy.sh/" + encodeURIComponent(topic) +
+      "/publish?title=" + encodeURIComponent(title) +
+      "&message=" + encodeURIComponent(message) +
+      "&tags=computer&_=" + Date.now();
+
     try {
-      if (typeof fetch === "function") {
-        fetch(url, { method: "GET" }).then(function (r) {
-          finish(!!r);
-        }).catch(function () {
-          try {
-            var img = new Image();
-            img.onload = function () { finish(true); };
-            img.onerror = function () { finish(true); };
-            img.src = url;
-            setTimeout(function () { finish(true); }, 1200);
-          } catch (_) { finish(false); }
-        });
-        setTimeout(function () {
-          if (!finished) {
-            try {
-              var img2 = new Image();
-              img2.onload = function () { finish(true); };
-              img2.onerror = function () { finish(true); };
-              img2.src = url;
-            } catch (_) {}
-          }
-        }, 2500);
-        return;
-      }
-      var img3 = new Image();
-      img3.onload = function () { finish(true); };
-      img3.onerror = function () { finish(true); };
-      img3.src = url;
-      setTimeout(function () { finish(true); }, 1200);
-    } catch (e) {
-      finish(false);
-    }
+      if (!window.__ps5RelayImages) window.__ps5RelayImages = [];
+      var img = new Image();
+      window.__ps5RelayImages.push(img);
+      img.src = url;
+    } catch (_) {}
+
+    // PS5 WebKit can leave fetch/image completion callbacks pending even though
+    // the request was already transmitted. Never block the research flow on ACK.
+    setTimeout(function () {
+      if (typeof done === "function") done(true);
+    }, 450);
   }
 
   function sendRelayReport(done) {
@@ -520,30 +497,30 @@
       if (typeof done === "function") done(false);
       return;
     }
-    var btn = document.getElementById("sendReport");
-    if (btn) btn.disabled = true;
+
     var messages = buildRelayMessages();
-    var pos = 0;
-    var failed = false;
-    function next() {
-      if (pos >= messages.length) {
-        state.meta.relaySentAt = new Date().toISOString();
-        state.meta.relayTopicPresent = true;
-        renderAll();
-        setText("runStatus", failed ? "Report attempted; one relay request may have failed." : "Report sent.");
-        updateSendButton();
-        if (typeof done === "function") done(!failed);
-        return;
-      }
-      setText("runStatus", "Sending report " + (pos + 1) + "/3...");
-      var idx = pos;
-      publishRelayMessage(topic, "PS5 13.60 " + state.meta.relayRunId + " " + (idx + 1) + "/3", messages[idx], function (ok) {
-        if (!ok) failed = true;
-        pos++;
-        setTimeout(next, 250);
-      });
+    setText("runStatus", "Sending report automatically...");
+
+    for (var i = 0; i < messages.length; i++) {
+      (function (idx) {
+        publishRelayMessage(
+          topic,
+          "PS5 13.60 " + state.meta.relayRunId + " " + (idx + 1) + "/3",
+          messages[idx]
+        );
+      }(i));
     }
-    next();
+
+    state.meta.relaySentAt = new Date().toISOString();
+    state.meta.relayTopicPresent = true;
+    renderAll();
+
+    // Fire-and-forget: give the browser a short window to transmit all three
+    // GETs, then continue regardless of response/callback behavior.
+    setTimeout(function () {
+      setText("runStatus", "Report dispatched. Continuing automatically...");
+      if (typeof done === "function") done(true);
+    }, 1400);
   }
 
   function updateSendButton() {
@@ -656,7 +633,7 @@
     updateSendButton();
 
     try {
-      localStorage.setItem("ps5-1360-last-report-v043", JSON.stringify(state));
+      localStorage.setItem("ps5-1360-last-report-v044", JSON.stringify(state));
     } catch (_) {}
   }
 
@@ -666,7 +643,7 @@
   renderAll();
 
   try {
-    var cached = localStorage.getItem("ps5-1360-last-report-v043");
+    var cached = localStorage.getItem("ps5-1360-last-report-v044");
     if (cached) {
       var parsed = JSON.parse(cached);
       if (parsed && parsed.meta && parsed.tests) {
