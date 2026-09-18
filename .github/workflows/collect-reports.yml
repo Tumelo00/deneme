@@ -111,13 +111,18 @@ jobs:
               combined = markers + "\n" + logs
               userland = "phase=USERLAND_HANDOFF" in combined or "ctx=1" in combined
               getpid = ("[canary] getpid ok" in combined
-                        or "phase=GETPID_PASS" in combined)
-              getpid_fail = "phase=GETPID_FAIL" in combined
+                        or "phase=GETPID_PASS" in combined
+                        or "phase=DIRECT_GETPID_PASS" in combined)
+              getpid_fail = ("phase=GETPID_FAIL" in combined
+                             or "phase=DIRECT_GETPID_FAIL" in combined)
               done = "[canary] DONE" in combined or getpid
               bridge = ("BRIDGE-BOOT" in combined or "mode ROP" in combined
                         or "phase=BRIDGE_LOAD_START" in combined
                         or "phase=GETPID_PASS" in combined
-                        or "phase=GETPID_FAIL" in combined)
+                        or "phase=GETPID_FAIL" in combined
+                        or "phase=DIRECT_GETPID_START" in combined
+                        or "phase=DIRECT_GETPID_PASS" in combined
+                        or "phase=DIRECT_GETPID_FAIL" in combined)
               notify1360 = "notify=0x48b0" in combined or "libkernel-rva=0x48b0" in combined
               if getpid:
                   verdict = "PASS — Stage A handoff + bridge/native getpid completed"
