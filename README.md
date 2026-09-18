@@ -4,7 +4,7 @@ A non-destructive browser/runtime research host for PlayStation 5 firmware 13.60
 
 Live Pages URL: https://tumelo00.github.io/deneme/
 
-## Current build: 0.4
+## Current build: 0.6.0
 
 Build 0.3 is based on real output from a PS5 running 13.60. It runs the runtime fingerprint, Worker transfer test, and bounded memory allocation in one click:
 
@@ -104,11 +104,11 @@ See `RESEARCH.md` for the current technical notes and `ATTRIBUTION.md` for upstr
 
 ## Advanced Stage A
 
-Build 0.4 adds a launcher for the public PSAITO userland/ROP canary on PS5 13.xx.
+Build 0.5.9 hardware-confirmed Stage A on the target PS5 13.60 console: the exploit published `window.__PS5_CTX` and the host received `USERLAND_HANDOFF` with non-zero WebKit/libkernel bases.
 
-The launcher intentionally selects `auto=hello_1320.js`, disables notifications, limits retries, and sends remote logs to the same research relay. The canary only verifies that the WebKit/userland bridge reaches a native `getpid` call. It does not intentionally run the Bagagwa kernel-UAF shot.
+The stable Stage A condition is a full upstream groom (`n=512`) with exactly one attempt (`max=1`). Repeated automatic retries caused PS5 browser memory-pressure warnings; reducing the groom to `n=64` removed the native Userland success signal.
 
-This advanced stage is more invasive than the baseline browser diagnostics and can still close or crash the browser if the WebKit exploit fails.
+Build 0.6.0 keeps the successful Stage A path unchanged and loads the upstream bridge only after the handoff. The next canary is a non-destructive `getpid` syscall. The Bagagwa kernel-UAF shot is still not auto-run.
 
 ## Updated 13.60 post-exploit finding
 
@@ -119,3 +119,17 @@ EchoStretch/kstuff-lite mainline contains explicit 13.60 work, including commits
 - `feat: add firmware 13.60 fast-path offsets`
 
 That means the post-exploit/kstuff side is further along than the latest tagged release alone suggests. The main unresolved question for this project is reaching a stable userland/native primitive and then determining which kernel entry path is actually permitted from the WebKit sandbox.
+
+## Hardware-confirmed 13.60 checkpoint
+
+Latest confirmed Stage A marker:
+
+```text
+phase=USERLAND_HANDOFF
+ctx=1
+webkitBase=34542698496
+libkernelBase=34709929984
+```
+
+This means the target browser reached the userland handoff and exposed the RW context required by the bridge. The next gate is `GETPID_PASS` from build 0.6.0.
+
