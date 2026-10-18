@@ -1,6 +1,6 @@
 # PS5 13.60 automated research summary
 
-Generated: 2026-10-18T08:58:30.106533+00:00
+Generated: 2026-10-18T13:09:08.608781+00:00
 
 ## Latest baseline run
 
